@@ -1,10 +1,19 @@
 package com.smartquiz;
 
-public class App 
-{
-    public static void main( String[] args )
-    {
-        System.out.println("=== Sistem Aplikasi Smartquiz ===");
-        System.out.println("Selamat datang di aplikasi Smartquiz. Silakan pilih opsi berikut:");
+import com.smartquiz.repository.QuestionRepository;
+import com.smartquiz.service.QuizService;
+import com.smartquiz.view.QuizView;
+
+public class App {
+    public static void main(String[] args) {
+        
+        QuestionRepository repo = new QuestionRepository();
+        QuizService quizService = new QuizService(repo);
+
+        quizService.setupDefaultQuestions(new java.util.ArrayList<>());
+
+        QuizView view = new QuizView(quizService);
+
+        view.showLogin();
     }
 }
