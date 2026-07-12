@@ -1,0 +1,11 @@
+# Folder hasil build Maven
+target/
+
+# File log atau cache
+*.log
+
+# Pengaturan spesifik VS Code (opsional, tapi disarankan)
+.vscode/
+.settings/
+.classpath
+.project
