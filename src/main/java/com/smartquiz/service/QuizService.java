@@ -28,4 +28,12 @@ public class QuizService {
     public void addQuestion(Question question) {
         repository.addQuestion(question);
     }
+
+    public void deleteQuestion(int id) {
+        repository.deleteQuestion(id);
+    }
+
+    public void updateQuestion(Question question) {
+        repository.updateQuestion(question);
+    }
 }
