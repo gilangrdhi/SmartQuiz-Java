@@ -25,6 +25,21 @@ public class User {
     @Column(name = "total_poin")
     private Integer totalPoin = 0;
 
+    @Column(name = "topi_x")
+    private Integer topiX;
+
+    @Column(name = "topi_y")
+    private Integer topiY;
+
+    @Column(name = "topi_width")
+    private Integer topiWidth;
+
+    @Column(name = "topi_height")
+    private Integer topiHeight;
+
+    @Column(name = "topi_rotation")
+    private Integer topiRotation;
+
     public User() {}
 
     public Long getId() { return id; }
@@ -44,4 +59,20 @@ public class User {
 
     public Integer getTotalPoin() { return totalPoin; }
     public void setTotalPoin(Integer totalPoin) { this.totalPoin = totalPoin; }
+
+    public Integer getTopiX() { return topiX; }
+    public void setTopiX(Integer topiX) { this.topiX = topiX; }
+
+    public Integer getTopiY() { return topiY; }
+    public void setTopiY(Integer topiY) { this.topiY = topiY; }
+
+    public Integer getTopiWidth() { return topiWidth; }
+    public void setTopiWidth(Integer topiWidth) { this.topiWidth = topiWidth; }
+
+    public Integer getTopiHeight() { return topiHeight; }
+    public void setTopiHeight(Integer topiHeight) { this.topiHeight = topiHeight; }
+
+    public Integer getTopiRotation() { return topiRotation; }
+    public void setTopiRotation(Integer topiRotation) { this.topiRotation = topiRotation; }
+
 }

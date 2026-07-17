@@ -8,7 +8,7 @@ import {
   AppstoreOutlined,
 } from "@ant-design/icons";
 
-import bemek from "../assets/bemek.svg";
+import bemek from "/bemek.svg";
 import logoSmartQuiz from "../assets/logo-smartquiz.svg";
 
 function Navbar() {
@@ -27,7 +27,7 @@ function Navbar() {
   };
 
   const items = [
-    { key: "1", label: "Customize Avatar", icon: <SettingOutlined /> },
+    { key: "1", label: "Profile", icon: <SettingOutlined /> },
     {
       key: "2",
       danger: true,
