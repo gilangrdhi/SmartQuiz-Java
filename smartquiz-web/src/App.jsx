@@ -1,14 +1,46 @@
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import Navbar from './components/Navbar';
+import Dashboard from './pages/Dashboard';
+import QuizRoom from './pages/QuizRoom';
+import LoginPage from './pages/LoginPage';
+
+const ProtectedRoute = ({ children }) => {
+  const user = localStorage.getItem('user');
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  return children;
+};
 
 function App() {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center">
-      <h1 className="text-4xl font-bold text-quiz-dark mb-4">
-        ☁️ SmartQuiz Frontend Ready!
-      </h1>
-      <button className="px-6 py-2 bg-quiz-primary text-white rounded-full shadow-lg hover:bg-quiz-light transition-all">
-        Mulai Kuis
-      </button>
-    </div>
+    <BrowserRouter>
+      <Navbar />      
+      <Routes>
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        
+        {/* Halaman Login */}
+        <Route path="/login" element={<LoginPage />} />
+
+        <Route 
+          path="/dashboard" 
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          } 
+        />
+        
+        <Route 
+          path="/quiz" 
+          element={
+            <ProtectedRoute>
+              <QuizRoom />
+            </ProtectedRoute>
+          } 
+        />
+      </Routes>
+    </BrowserRouter>
   );
 }
 

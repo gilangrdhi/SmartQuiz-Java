@@ -28,6 +28,9 @@ public class Question {
     @Column(name = "kunci_jawaban", nullable = false)
     private String kunciJawaban;
 
+    @Column(name = "kategori", nullable = false)
+    private String kategori = "Umum";
+
     public Question() {
     }
 
@@ -51,4 +54,7 @@ public class Question {
 
     public String getKunciJawaban() {return kunciJawaban;}
     public void setKunciJawaban(String kunciJawaban) {this.kunciJawaban = kunciJawaban;}
+
+    public String getKategori() { return kategori; }
+    public void setKategori(String kategori) { this.kategori = kategori; }
 }
