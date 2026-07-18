@@ -22,6 +22,9 @@ public class User {
     @Column(name = "jenis_topi", nullable = false)
     private String jenisTopi = "none";
 
+    @Column(name = "pose_id", nullable = false)
+    private String poseId = "pose1";
+
     @Column(name = "total_poin")
     private Integer totalPoin = 0;
 
@@ -56,6 +59,9 @@ public class User {
 
     public String getJenisTopi() { return jenisTopi; }
     public void setJenisTopi(String jenisTopi) { this.jenisTopi = jenisTopi; }
+
+    public String getPoseId() { return poseId; }
+    public void setPoseId(String poseId) { this.poseId = poseId; }
 
     public Integer getTotalPoin() { return totalPoin; }
     public void setTotalPoin(Integer totalPoin) { this.totalPoin = totalPoin; }

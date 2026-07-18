@@ -31,6 +31,7 @@ const POSE_OPTIONS = [
   { id: "pose2", src: "/pose2.svg", label: "Pose 2" },
   { id: "pose3", src: "/pose3.svg", label: "Pose 3" },
   { id: "pose4", src: "/pose4.svg", label: "Pose 4" },
+  { id: "pose5", src: "/pose5.svg", label: "Pose 5" },
 ];
 
 const colorPresets = [

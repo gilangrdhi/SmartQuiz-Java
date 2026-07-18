@@ -39,6 +39,7 @@ public class AvatarController {
             user.setTopiWidth(payload.getHatWidth());
             user.setTopiHeight(payload.getHatHeight());
             user.setTopiRotation(payload.getHatRotation());
+            user.setPoseId(payload.getPoseId());
 
             userRepository.save(user);
 
@@ -65,6 +66,7 @@ public class AvatarController {
             AvatarPayload responseData = new AvatarPayload();
             responseData.setColor(user.getWarnaAvatar());
             responseData.setHatId(user.getJenisTopi());
+            responseData.setPoseId(user.getPoseId() != null ? user.getPoseId() : "pose1");
             responseData.setHatPositionX(user.getTopiX() != null ? user.getTopiX() : 100);
             responseData.setHatPositionY(user.getTopiY() != null ? user.getTopiY() : 40);
             responseData.setHatWidth(user.getTopiWidth() != null ? user.getTopiWidth() : 100);

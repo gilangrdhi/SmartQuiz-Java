@@ -3,6 +3,7 @@ package com.smartquiz.smartquiz_api.model;
 public class AvatarPayload {
     private String color;
     private String hatId;
+    private String poseId;
     private int hatPositionX;
     private int hatPositionY;
     private int hatWidth;
@@ -14,6 +15,9 @@ public class AvatarPayload {
 
     public String getHatId() { return hatId; }
     public void setHatId(String hatId) { this.hatId = hatId; }
+
+    public String getPoseId() { return poseId; }
+    public void setPoseId(String poseId) { this.poseId = poseId; }
 
     public int getHatPositionX() { return hatPositionX; }
     public void setHatPositionX(int hatPositionX) { this.hatPositionX = hatPositionX; }

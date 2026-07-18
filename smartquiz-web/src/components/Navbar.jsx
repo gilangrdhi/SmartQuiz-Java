@@ -8,7 +8,6 @@ import {
   AppstoreOutlined,
 } from "@ant-design/icons";
 
-import bemek from "/pose1.svg";
 import logoSmartQuiz from "../assets/logo-smartquiz.svg";
 import AvatarDisplay from "../components/AvatarDisplay";
 
@@ -40,6 +39,7 @@ export default function Navbar() {
           ...parsedUser,
           warnaAvatar: data.color || parsedUser.warnaAvatar,
           jenisTopi: data.hatId || parsedUser.jenisTopi,
+          poseId: data.poseId || parsedUser.poseId,
           topiX: data.hatPositionX,
           topiY: data.hatPositionY,
           topiWidth: data.hatWidth,
@@ -96,6 +96,9 @@ export default function Navbar() {
       ? `/${user.jenisTopi}.svg`
       : null;
 
+  
+  const poseSrc = user?.poseId ? `/${user.poseId}.svg` : "/pose1.svg";
+
   return (
     <nav className="bg-[#2c5ead] p-3 flex justify-between items-center shadow-lg px-8 sticky top-0 z-100">
       <div className="flex gap-6 items-center">
@@ -138,7 +141,7 @@ export default function Navbar() {
               <AvatarDisplay
                 size={48} // Ukuran kecil untuk navbar
                 bgColor={user.warnaAvatar || "#e6f4ff"}
-                poseSrc={bemek}
+                poseSrc={poseSrc}
                 hatSrc={hatSrc}
                 hatConfig={{
                   x: user.topiX || 0,

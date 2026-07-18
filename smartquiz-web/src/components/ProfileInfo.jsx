@@ -19,7 +19,6 @@ import {
 } from "@ant-design/icons";
 
 import AvatarDisplay from "./AvatarDisplay";
-import bemek from "/pose1.svg";
 
 const { Title, Text } = Typography;
 
@@ -58,11 +57,12 @@ const ProfileInfo = () => {
 
   if (!user) return null;
 
-  // --- Logic Path Topi ---
   const hatSrc =
     user.jenisTopi && user.jenisTopi !== "none"
       ? `/${user.jenisTopi}.svg`
       : null;
+
+  const poseSrc = user.poseId ? `/${user.poseId}.svg` : "/pose1.svg";
 
   return (
     <Card
@@ -103,7 +103,7 @@ const ProfileInfo = () => {
             <AvatarDisplay
               size={120}
               bgColor={user.warnaAvatar || "#e6f4ff"}
-              poseSrc={bemek}
+              poseSrc={poseSrc}
               hatSrc={hatSrc}
               hatConfig={{
                 x: user.topiX || 0,
