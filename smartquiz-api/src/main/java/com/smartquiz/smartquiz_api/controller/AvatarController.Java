@@ -18,11 +18,18 @@ public class AvatarController {
     private UserRepository userRepository;
 
     @PostMapping("/save")
-    public ResponseEntity<?> saveAvatar(@RequestBody AvatarPayload payload) {
-        Long userId = 1L; 
-        
-        Optional<User> userOptional = userRepository.findById(userId);
-        
+    public ResponseEntity<?> saveAvatar(
+            @RequestParam(value = "userId", required = false) Long userId,
+            @RequestParam(value = "email", required = false) String email,
+            @RequestBody AvatarPayload payload) {
+        if (userId == null && (email == null || email.isBlank())) {
+            return ResponseEntity.badRequest().body("{\"error\": \"UserId atau email wajib disertakan\"}");
+        }
+
+        Optional<User> userOptional = userId != null
+                ? userRepository.findById(userId)
+                : userRepository.findByEmail(email);
+
         if (userOptional.isPresent()) {
             User user = userOptional.get();
             user.setWarnaAvatar(payload.getColor());
@@ -34,7 +41,7 @@ public class AvatarController {
             user.setTopiRotation(payload.getHatRotation());
 
             userRepository.save(user);
-            
+
             return ResponseEntity.ok().body("{\"message\": \"Karakter berhasil disimpan ke Database!\"}");
         } else {
             return ResponseEntity.badRequest().body("{\"error\": \"User tidak ditemukan\"}");
@@ -42,11 +49,17 @@ public class AvatarController {
     }
 
     @GetMapping("/get")
-    public ResponseEntity<?> getAvatar() {
-        
-        Long userId = 1L; // Sama, pakai ID 1 dulu buat testing
-        Optional<User> userOptional = userRepository.findById(userId);
-        
+    public ResponseEntity<?> getAvatar(
+            @RequestParam(value = "userId", required = false) Long userId,
+            @RequestParam(value = "email", required = false) String email) {
+        if (userId == null && (email == null || email.isBlank())) {
+            return ResponseEntity.badRequest().body("{\"error\": \"UserId atau email wajib disertakan\"}");
+        }
+
+        Optional<User> userOptional = userId != null
+                ? userRepository.findById(userId)
+                : userRepository.findByEmail(email);
+
         if (userOptional.isPresent()) {
             User user = userOptional.get();
             AvatarPayload responseData = new AvatarPayload();
@@ -57,10 +70,10 @@ public class AvatarController {
             responseData.setHatWidth(user.getTopiWidth() != null ? user.getTopiWidth() : 100);
             responseData.setHatHeight(user.getTopiHeight() != null ? user.getTopiHeight() : 100);
             responseData.setHatRotation(user.getTopiRotation() != null ? user.getTopiRotation() : 0);
-            
+
             return ResponseEntity.ok(responseData);
         }
-        
+
         return ResponseEntity.badRequest().body("{}");
     }
 }

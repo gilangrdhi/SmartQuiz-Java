@@ -7,7 +7,7 @@ import {
   GlobalOutlined,
   CalculatorOutlined,
 } from "@ant-design/icons";
-import pakRusa from "../assets/pakRusa.svg";
+import pakElio from "../assets/pakElio.svg";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -26,8 +26,8 @@ export default function Dashboard() {
 
           <div className="absolute bottom-0 left-10 w-[35%] h-full z-10 pointer-events-none select-none">
             <img
-              src={pakRusa}
-              alt="Pak Rusa"
+              src={pakElio}
+              alt="Pak Elio"
               draggable="false"
               className="absolute bottom-0 left-0 h-[130%] object-contain origin-bottom drop-shadow-xl hover:scale-105 transition-transform duration-700"
             />
@@ -68,7 +68,7 @@ export default function Dashboard() {
                 shape="round"
                 icon={<FormatPainterOutlined />}
                 className="bg-white text-[#2c5ead] border-2 border-white font-bold h-14 px-8 text-lg hover:bg-transparent! hover:text-[#1591dc]! hover:border-[#1591dc]! shadow-md transition-all"
-                onClick={() => navigate("/custom-avatar")}
+                onClick={() => navigate("/profile")}
               >
                 Kustom Avatar
               </Button>

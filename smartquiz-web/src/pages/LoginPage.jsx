@@ -1,5 +1,5 @@
 import LoginButton from "../components/LoginButton";
-import pakRusa from "../assets/pakRusa.svg";
+import pakElio from "../assets/pakElio.svg";
 
 function LoginPage() {
   return (
@@ -9,12 +9,12 @@ function LoginPage() {
           <div className="absolute top-12 left-8 w-16 h-16 rounded-full bg-white/10 animate-float-slow blur-[2px]"></div>
           <div className="absolute bottom-16 right-12 w-24 h-24 rounded-full bg-white/10 animate-float-delayed blur-xs"></div>
           <div className="absolute -top-6 -right-48 bg-white text-[#2c5ead] px-6 py-4 rounded-3xl shadow-xl font-bold text-sm text-center w-72 z-40 animate-float-slow border border-gray-100">
-            "Halo! Aku Pak Rusa. Sudah siap menguji wawasanmu hari ini?"
+            "Halo! Aku Pak Elio. Sudah siap menguji wawasanmu hari ini?"
             <div className="absolute bottom-4 -left-3 w-0 h-0 border-y-12 border-y-transparent border-r-16 border-r-white transform -rotate-6"></div>
           </div>
           <img
-            src={pakRusa}
-            alt="Pak Rusa"
+            src={pakElio}
+            alt="Pak Elio"
             draggable="false"
             className="absolute bottom-0 -right-16 h-[115%] object-bottom object-contain z-20 drop-shadow-2xl pointer-events-none hover:scale-105 transition-transform duration-700 origin-bottom"
           />

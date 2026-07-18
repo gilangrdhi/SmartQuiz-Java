@@ -38,7 +38,7 @@ function QuizRoom() {
         <div className="md:w-1/3 flex flex-col items-center justify-start">
           <Card className="w-full rounded-2xl shadow-lg border-2 border-quiz-primary bg-white text-center">
             <div className="text-6xl mb-4">🦌</div>
-            <h3 className="font-bold text-quiz-dark text-lg">Pak Rusa</h3>
+            <h3 className="font-bold text-quiz-dark text-lg">Pak Elio</h3>
             <p className="text-gray-500 text-sm italic">
               "Ayo perhatikan soal di samping! Jangan sampai salah ya!"
             </p>

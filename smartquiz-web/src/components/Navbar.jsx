@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Avatar, Dropdown } from "antd";
+import { Dropdown } from "antd"; // Hapus import Avatar bawaan Ant Design
 import {
   LogoutOutlined,
   SettingOutlined,
@@ -8,10 +8,11 @@ import {
   AppstoreOutlined,
 } from "@ant-design/icons";
 
-import bemek from "/bemek.svg";
+import bemek from "/pose1.svg";
 import logoSmartQuiz from "../assets/logo-smartquiz.svg";
+import AvatarDisplay from "../components/AvatarDisplay";
 
-function Navbar() {
+export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -20,6 +21,50 @@ function Navbar() {
     return loggedInUser ? JSON.parse(loggedInUser) : null;
   });
 
+  const loadCurrentUser = () => {
+    const storedUser = localStorage.getItem("user");
+    if (!storedUser) return;
+
+    const parsedUser = JSON.parse(storedUser);
+    const query = parsedUser.id
+      ? `userId=${parsedUser.id}`
+      : `email=${encodeURIComponent(parsedUser.email)}`;
+
+    fetch(`/api/avatar/get?${query}`)
+      .then((response) => {
+        if (!response.ok) throw new Error("Avatar fetch failed");
+        return response.json();
+      })
+      .then((data) => {
+        const merged = {
+          ...parsedUser,
+          warnaAvatar: data.color || parsedUser.warnaAvatar,
+          jenisTopi: data.hatId || parsedUser.jenisTopi,
+          topiX: data.hatPositionX,
+          topiY: data.hatPositionY,
+          topiWidth: data.hatWidth,
+          topiHeight: data.hatHeight,
+          topiRotation: data.hatRotation || 0,
+        };
+        setUser(merged);
+        localStorage.setItem("user", JSON.stringify(merged));
+      })
+      .catch(() => {
+        setUser(parsedUser);
+      });
+  };
+
+  useEffect(() => {
+    loadCurrentUser();
+
+    const refreshHandler = () => {
+      loadCurrentUser();
+    };
+
+    window.addEventListener("avatarUpdated", refreshHandler);
+    return () => window.removeEventListener("avatarUpdated", refreshHandler);
+  }, []);
+
   const handleLogout = () => {
     localStorage.removeItem("user");
     setUser(null);
@@ -27,7 +72,12 @@ function Navbar() {
   };
 
   const items = [
-    { key: "1", label: "Profile", icon: <SettingOutlined /> },
+    {
+      key: "1",
+      label: "Profile",
+      icon: <SettingOutlined />,
+      onClick: () => navigate("/profile"),
+    },
     {
       key: "2",
       danger: true,
@@ -40,6 +90,11 @@ function Navbar() {
   if (location.pathname === "/login") {
     return null;
   }
+
+  const hatSrc =
+    user?.jenisTopi && user.jenisTopi !== "none"
+      ? `/${user.jenisTopi}.svg`
+      : null;
 
   return (
     <nav className="bg-[#2c5ead] p-3 flex justify-between items-center shadow-lg px-8 sticky top-0 z-100">
@@ -71,23 +126,27 @@ function Navbar() {
       <div>
         {user && (
           <Dropdown menu={{ items }} placement="bottomRight" arrow>
-            <div className="flex items-center gap-3 cursor-pointer bg-white/10 px-5 py-2.5 rounded-full hover:bg-white/20 hover:scale-105 transition-all duration-300 border border-transparent hover:border-[#4bb8fa]">
+            <div className="flex items-center gap-2 cursor-pointer bg-white/10 px-4 py-2 rounded-full hover:bg-white/20 hover:scale-105 transition-all duration-300 border border-transparent hover:border-[#4bb8fa]">
               <span
-                className="text-white font-bold"
+                className="text-white font-bold mr-2"
                 style={{ fontFamily: "Poppins, sans-serif" }}
               >
                 {user.nama}
               </span>
-              <Avatar
-                style={{ backgroundColor: user.warnaAvatar || "#e6f4ff" }}
-                src={
-                  <img
-                    src={bemek}
-                    alt="Avatar Bemek"
-                    className="object-contain w-full h-full"
-                  />
-                }
-                className="shadow-sm border-2 border-white/80 flex items-center justify-center bg-white"
+
+              {/* Menggunakan komponen AvatarDisplay yang baru */}
+              <AvatarDisplay
+                size={48} // Ukuran kecil untuk navbar
+                bgColor={user.warnaAvatar || "#e6f4ff"}
+                poseSrc={bemek}
+                hatSrc={hatSrc}
+                hatConfig={{
+                  x: user.topiX || 0,
+                  y: user.topiY || 0,
+                  width: user.topiWidth || 0,
+                  height: user.topiHeight || 0,
+                  rotation: user.topiRotation || 0,
+                }}
               />
             </div>
           </Dropdown>
@@ -96,5 +155,3 @@ function Navbar() {
     </nav>
   );
 }
-
-export default Navbar;

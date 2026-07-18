@@ -1,9 +1,15 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  Outlet,
+} from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Dashboard from "./pages/Dashboard";
 import QuizRoom from "./pages/QuizRoom";
 import LoginPage from "./pages/LoginPage";
-import CustomAvatar from "./pages/CustomAvatar";
+import ProfilePage from "./pages/ProfilePage";
 
 const ProtectedRoute = ({ children }) => {
   const user = localStorage.getItem("user");
@@ -13,43 +19,50 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
-function App() {
+const NavbarLayout = () => {
+  return (
+    <>
+      <Navbar />
+      <Outlet />
+    </>
+  );
+};
+
+export default function App() {
   return (
     <BrowserRouter>
-      <Navbar />
       <Routes>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/login" element={<LoginPage />} />
 
         <Route
-          path="/dashboard"
+          path="/profile"
           element={
             <ProtectedRoute>
-              <Dashboard />
+              <ProfilePage />
             </ProtectedRoute>
           }
         />
 
-        <Route
-          path="/custom-avatar"
-          element={
-            <ProtectedRoute>
-              <CustomAvatar />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/quiz"
-          element={
-            <ProtectedRoute>
-              <QuizRoom />
-            </ProtectedRoute>
-          }
-        />
+        <Route element={<NavbarLayout />}>
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/quiz"
+            element={
+              <ProtectedRoute>
+                <QuizRoom />
+              </ProtectedRoute>
+            }
+          />
+        </Route>
       </Routes>
     </BrowserRouter>
   );
 }
-
-export default App;
