@@ -1,9 +1,9 @@
-import CustomAvatar from '../components/AvatarCustomizer';
+import CustomAvatar from "../components/AvatarCustomizer";
 
 const ProfilePage = () => {
   return (
-    <div style={{ padding: '18px' }}>
-      <CustomAvatar />      
+    <div style={{ padding: "18px" }}>
+      <CustomAvatar />
     </div>
   );
 };

@@ -9,9 +9,6 @@ public class AvatarPayload {
     private int hatHeight;
     private int hatRotation;
 
-    // Kalau kamu pakai library Lombok, kamu bisa hapus semua Getter & Setter di bawah ini 
-    // dan cukup tambahkan anotasi @Data di atas nama class.
-
     public String getColor() { return color; }
     public void setColor(String color) { this.color = color; }
 

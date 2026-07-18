@@ -52,6 +52,7 @@ export default function Dashboard() {
 
             <div className="flex flex-wrap gap-4">
               <Button
+                style={{ fontWeight: 600 }}
                 type="primary"
                 size="large"
                 shape="round"
@@ -62,13 +63,14 @@ export default function Dashboard() {
               </Button>
 
               <Button
+                style={{ fontWeight: 600 }}
                 size="large"
                 shape="round"
                 icon={<FormatPainterOutlined />}
                 className="bg-white text-[#2c5ead] border-2 border-white font-bold h-14 px-8 text-lg hover:bg-transparent! hover:text-[#1591dc]! hover:border-[#1591dc]! shadow-md transition-all"
                 onClick={() => navigate("/custom-avatar")}
               >
-                Kustom Ava
+                Kustom Avatar
               </Button>
             </div>
           </div>

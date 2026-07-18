@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ColorPicker,
   Button,
@@ -14,9 +14,10 @@ const { Text, Title } = Typography;
 
 const HATS_OPTIONS = [
   { id: "none", src: null, label: "Tanpa Topi" },
-  { id: "topi1", src: "/topi1.svg", label: "Topi Polisi" },
-  { id: "topi2", src: "/topi2.svg", label: "Topi Koboi" },
-  { id: "topi3", src: "/topi3.svg", label: "Helm" },
+  { id: "mask", src: "/mask.svg", label: "Mask" },
+  { id: "topi1", src: "/topi1.svg", label: "Topi Koboi" },
+  { id: "topi2", src: "/topi2.svg", label: "Topi Badut" },
+  { id: "topi3", src: "/topi3.svg", label: "Punk" },
 ];
 
 const colorPresets = [
@@ -40,8 +41,6 @@ const AvatarCustomizer = () => {
 
   const [bgColor, setBgColor] = useState("#87CEEB");
   const [selectedHat, setSelectedHat] = useState(HATS_OPTIONS[0]);
-
-  // State ini sekarang HANYA dipakai untuk simpan data ke DB, bukan untuk render ulang Rnd (menghindari error loop)
   const [hatStyle, setHatStyle] = useState({
     x: 100,
     y: 40,
@@ -51,6 +50,32 @@ const AvatarCustomizer = () => {
   const [hatRotation, setHatRotation] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
 
+  useEffect(() => {
+    const loadAvatar = async () => {
+      try {
+        const response = await fetch("/api/avatar/get");
+        if (!response.ok) throw new Error("Gagal mengambil data avatar");
+
+        const data = await response.json();
+        setBgColor(data.color || "#87CEEB");
+        setSelectedHat(
+          HATS_OPTIONS.find((hat) => hat.id === data.hatId) || HATS_OPTIONS[0],
+        );
+        setHatStyle({
+          x: data.hatPositionX ?? 100,
+          y: data.hatPositionY ?? 40,
+          width: data.hatWidth ?? 100,
+          height: data.hatHeight ?? 100,
+        });
+        setHatRotation(data.hatRotation ?? 0);
+      } catch (error) {
+        console.error("Error loading avatar:", error);
+      }
+    };
+
+    loadAvatar();
+  }, []);
+
   const handleSave = async () => {
     setIsSaving(true);
     const finalColor =
@@ -59,7 +84,7 @@ const AvatarCustomizer = () => {
     const payload = {
       color: finalColor,
       hatId: selectedHat.id,
-      hatPositionX: Math.round(hatStyle.x), // Dibulatkan biar backend gak pusing nerima angka desimal
+      hatPositionX: Math.round(hatStyle.x),
       hatPositionY: Math.round(hatStyle.y),
       hatWidth: Math.round(hatStyle.width),
       hatHeight: Math.round(hatStyle.height),
@@ -88,7 +113,6 @@ const AvatarCustomizer = () => {
   const hexColor =
     typeof bgColor === "string" ? bgColor : bgColor.toHexString();
 
-  // Gaya untuk titik-titik resize biar kelihatan
   const handleStyle = {
     width: "10px",
     height: "10px",
@@ -162,8 +186,8 @@ const AvatarCustomizer = () => {
 
             {selectedHat.src && (
               <Rnd
-                // MENGGUNAKAN DEFAULT MENGHINDARI ERROR MAXIMUM UPDATE DEPTH
-                default={{ x: 100, y: 40, width: 100, height: 100 }}
+                position={{ x: hatStyle.x, y: hatStyle.y }}
+                size={{ width: hatStyle.width, height: hatStyle.height }}
                 onDragStop={(e, d) =>
                   setHatStyle((prev) => ({ ...prev, x: d.x, y: d.y }))
                 }
@@ -176,7 +200,6 @@ const AvatarCustomizer = () => {
                 }}
                 bounds="parent"
                 style={{ zIndex: 2 }}
-                // Menambahkan titik bantu visual untuk nge-resize
                 resizeHandleStyles={{
                   bottomRight: handleStyle,
                   bottomLeft: handleStyle,

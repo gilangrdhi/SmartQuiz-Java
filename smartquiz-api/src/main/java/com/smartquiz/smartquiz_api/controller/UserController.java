@@ -1,6 +1,7 @@
 package com.smartquiz.smartquiz_api.controller;
 
 import com.smartquiz.smartquiz_api.model.User;
+import com.smartquiz.smartquiz_api.model.AvatarPayload;
 import com.smartquiz.smartquiz_api.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -25,12 +26,18 @@ public class UserController {
     }
 
     @PutMapping("/{id}/avatar")
-    public User updateAvatar(@PathVariable Long id, @RequestBody User request) {
-        User user = userRepository.findById(id).orElseThrow();
-        
-        user.setJenisTopi(request.getJenisTopi());
-        user.setWarnaAvatar(request.getWarnaAvatar());
-        
+    public User updateAvatar(@PathVariable Long id, @RequestBody AvatarPayload request) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User dengan id " + id + " tidak ditemukan"));
+
+        user.setWarnaAvatar(request.getColor());
+        user.setJenisTopi(request.getHatId());
+        user.setTopiX(request.getHatPositionX());
+        user.setTopiY(request.getHatPositionY());
+        user.setTopiWidth(request.getHatWidth());
+        user.setTopiHeight(request.getHatHeight());
+        user.setTopiRotation(request.getHatRotation());
+
         return userRepository.save(user);
     }
 }
