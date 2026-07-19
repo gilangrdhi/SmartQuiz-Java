@@ -26,12 +26,23 @@ public class QuestionController {
         return questionRepository.findAll();
     }
 
+    @GetMapping("/quiz/{quizId}")
+    public List<Question> getQuestionsByQuiz(@PathVariable Long quizId) {
+        return questionRepository.findByQuizId(quizId);
+    }
+
     @PostMapping
     public Question addQuestion(@RequestBody Question question) {
         return questionRepository.save(question);
     }
 
-    @PutMapping
+
+    @PostMapping("/bulk")
+    public List<Question> addQuestionsBulk(@RequestBody List<Question> questions) {
+        return questionRepository.saveAll(questions);
+    }
+
+    @PutMapping("/{id}")
     public Question updateQuestion(@PathVariable Long id, @RequestBody Question questionDetails) {
         Question question = questionRepository.findById(id).orElseThrow();
 
@@ -41,6 +52,8 @@ public class QuestionController {
         question.setOpsiC(questionDetails.getOpsiC());
         question.setOpsiD(questionDetails.getOpsiD());
         question.setKunciJawaban(questionDetails.getKunciJawaban());
+        question.setKategori(questionDetails.getKategori());
+        question.setQuizId(questionDetails.getQuizId());
 
         return questionRepository.save(question);
     }

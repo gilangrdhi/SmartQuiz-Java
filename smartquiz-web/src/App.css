@@ -182,3 +182,22 @@
     border-right-color: var(--border);
   }
 }
+
+.logout-modal .ant-modal-content {
+  border-radius: 16px; 
+  box-shadow: 0 10px 25px rgba(44, 94, 173, 0.2);
+}
+
+.logout-modal .ant-btn-primary {
+  background-color: #ff4d4f;
+  border-radius: 8px;
+}
+
+.logout-modal .ant-btn-default {
+  border-radius: 8px;
+}
+
+.logout-modal .ant-modal-title {
+  color: #2c5ead;
+  font-weight: bold;
+}

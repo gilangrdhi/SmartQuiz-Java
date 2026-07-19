@@ -4,9 +4,11 @@ import {
   Route,
   Navigate,
   Outlet,
+  useParams,
 } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Dashboard from "./pages/Dashboard";
+import QuizListPage from "./pages/QuizListPage";
 import QuizRoom from "./pages/QuizRoom";
 import LoginPage from "./pages/LoginPage";
 import ProfilePage from "./pages/ProfilePage";
@@ -26,6 +28,11 @@ const NavbarLayout = () => {
       <Outlet />
     </>
   );
+};
+
+const QuizRoomKeyed = () => {
+  const { quizId } = useParams();
+  return <QuizRoom key={quizId} />;
 };
 
 export default function App() {
@@ -57,7 +64,15 @@ export default function App() {
             path="/quiz"
             element={
               <ProtectedRoute>
-                <QuizRoom />
+                <QuizListPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/quiz/:quizId"
+            element={
+              <ProtectedRoute>
+                <QuizRoomKeyed />
               </ProtectedRoute>
             }
           />

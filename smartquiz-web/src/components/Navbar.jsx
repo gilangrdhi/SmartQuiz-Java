@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Dropdown } from "antd"; // Hapus import Avatar bawaan Ant Design
+import { Dropdown } from "antd";
 import {
   LogoutOutlined,
   SettingOutlined,
@@ -8,7 +8,7 @@ import {
   AppstoreOutlined,
 } from "@ant-design/icons";
 
-import logoSmartQuiz from "../assets/logo-smartquiz.svg";
+import logoSmartQuiz from "../assets/logo-smartQuiz.svg";
 import AvatarDisplay from "../components/AvatarDisplay";
 
 export default function Navbar() {
@@ -116,13 +116,13 @@ export default function Navbar() {
           to="/dashboard"
           className={`font-semibold text-lg flex items-center gap-2 px-6 py-2 rounded-full transition-all duration-300 ${location.pathname === "/dashboard" ? "border-2 border-[#4bb8fa] text-white bg-white/10 shadow-inner" : "border-2 border-transparent text-white hover:text-[#4bb8fa] hover:bg-white/5"}`}
         >
-          <AppstoreOutlined style={{ fontWeight: "bold" }} /> Menu Games
+          <AppstoreOutlined style={{ fontWeight: "bold" }} /> Beranda
         </Link>
         <Link
           to="/quiz"
           className={`font-semibold text-lg flex items-center gap-2 px-6 py-2 rounded-full transition-all duration-300 ${location.pathname === "/quiz" ? "border-2 border-[#4bb8fa] text-white bg-white/10 shadow-inner" : "border-2 border-transparent text-white hover:text-[#4bb8fa] hover:bg-white/5"}`}
         >
-          <PlayCircleOutlined style={{ fontWeight: "bold" }} /> Main Kuis
+          <PlayCircleOutlined style={{ fontWeight: "bold" }} /> Menu
         </Link>
       </div>
 
@@ -137,9 +137,8 @@ export default function Navbar() {
                 {user.nama}
               </span>
 
-              {/* Menggunakan komponen AvatarDisplay yang baru */}
               <AvatarDisplay
-                size={48} // Ukuran kecil untuk navbar
+                size={48}
                 bgColor={user.warnaAvatar || "#e6f4ff"}
                 poseSrc={poseSrc}
                 hatSrc={hatSrc}

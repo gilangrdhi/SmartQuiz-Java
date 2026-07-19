@@ -31,6 +31,9 @@ public class Question {
     @Column(name = "kategori", nullable = false)
     private String kategori = "Umum";
 
+    @Column(name = "quiz_id")
+    private Long quizId;
+
     public Question() {
     }
 
@@ -57,4 +60,7 @@ public class Question {
 
     public String getKategori() { return kategori; }
     public void setKategori(String kategori) { this.kategori = kategori; }
+
+    public Long getQuizId() { return quizId; }
+    public void setQuizId(Long quizId) { this.quizId = quizId; }
 }

@@ -4,6 +4,7 @@ const AvatarDisplay = ({
   hatSrc = null,
   hatConfig = { x: 0, y: 0, width: 0, height: 0, rotation: 0 },
   size = 120,
+  transparent = false,
 }) => {
   const baseWidth = 340;
   const baseHeight = 380;
@@ -14,12 +15,12 @@ const AvatarDisplay = ({
       style={{
         width: size,
         height: size,
-        borderRadius: "50%", // Membuatnya bulat
-        backgroundColor: bgColor,
-        overflow: "hidden",
+        borderRadius: transparent ? 0 : "50%",
+        backgroundColor: transparent ? "transparent" : bgColor,
+        overflow: transparent ? "visible" : "hidden",
         position: "relative",
-        boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-        border: "4px solid rgba(255,255,255,0.8)",
+        boxShadow: transparent ? "none" : "0 4px 12px rgba(0,0,0,0.08)",
+        border: transparent ? "none" : "4px solid rgba(255,255,255,0.8)",
       }}
     >
       <div
