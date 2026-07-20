@@ -34,23 +34,20 @@ function getElioReaction(isAnswered, isCorrect, questionIndex) {
   if (!isAnswered) {
     return {
       quote: `"${IDLE_QUOTES[questionIndex % IDLE_QUOTES.length]}"`,
-      bubbleClass: "bg-white text-quiz-dark",
-      bubbleTailBorderClass: "border-r-white",
+      textClass: "text-[#2c5ead]",
       badge: "",
     };
   }
   if (isCorrect) {
     return {
       quote: `"${CORRECT_QUOTES[questionIndex % CORRECT_QUOTES.length]}"`,
-      bubbleClass: "bg-green-50 text-green-700",
-      bubbleTailBorderClass: "border-r-green-50",
+      textClass: "text-green-600",
       badge: "🎉",
     };
   }
   return {
     quote: `"${WRONG_QUOTES[questionIndex % WRONG_QUOTES.length]}"`,
-    bubbleClass: "bg-orange-50 text-orange-700",
-    bubbleTailBorderClass: "border-r-orange-50",
+    textClass: "text-orange-600",
     badge: "💭",
   };
 }
@@ -131,7 +128,7 @@ function QuizRoom() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-quiz-bg flex items-center justify-center">
+      <div className="min-h-screen bg-[#c4e2f5] flex items-center justify-center">
         <Spin size="large" />
       </div>
     );
@@ -139,7 +136,7 @@ function QuizRoom() {
 
   if (loadError) {
     return (
-      <div className="min-h-screen bg-quiz-bg flex items-center justify-center p-6">
+      <div className="min-h-screen bg-[#c4e2f5] flex items-center justify-center p-6">
         <Result
           status="warning"
           title={loadError}
@@ -155,7 +152,7 @@ function QuizRoom() {
 
   if (questions.length === 0) {
     return (
-      <div className="min-h-screen bg-quiz-bg flex items-center justify-center p-6">
+      <div className="min-h-screen bg-[#c4e2f5] flex items-center justify-center p-6">
         <Result
           status="info"
           title="Kuis ini belum punya soal"
@@ -173,7 +170,7 @@ function QuizRoom() {
   if (isFinished) {
     const winRate = Math.round((correctCount / questions.length) * 100);
     return (
-      <div className="min-h-screen bg-quiz-bg flex items-center justify-center p-6">
+      <div className="min-h-screen bg-[#c4e2f5] flex items-center justify-center p-6">
         <Card className="max-w-lg w-full rounded-3xl shadow-xl border-none text-center p-4">
           <Result
             status={winRate >= 60 ? "success" : "info"}
@@ -183,13 +180,11 @@ function QuizRoom() {
           <div className="flex justify-center gap-8 mb-6">
             <div>
               <p className="text-gray-400 text-sm font-bold">Skor</p>
-              <p className="text-3xl font-extrabold text-quiz-primary">
-                {score}
-              </p>
+              <p className="text-3xl font-extrabold text-[#1591dc]">{score}</p>
             </div>
             <div>
               <p className="text-gray-400 text-sm font-bold">Akurasi</p>
-              <p className="text-3xl font-extrabold text-quiz-dark">
+              <p className="text-3xl font-extrabold text-[#2c5ead]">
                 {winRate}%
               </p>
             </div>
@@ -198,7 +193,7 @@ function QuizRoom() {
             type="primary"
             size="large"
             shape="round"
-            className="bg-quiz-primary hover:bg-quiz-light! border-none font-bold"
+            className="bg-[#1591dc] hover:bg-[#4bb8fa]! border-none font-bold"
             onClick={() => navigate("/quiz")}
           >
             Kembali ke List Kuis
@@ -218,13 +213,13 @@ function QuizRoom() {
   const CategoryIcon = categoryStyle.icon;
 
   return (
-    <div className="min-h-screen bg-quiz-bg p-4 md:p-6 flex flex-col items-center font-sans">
-      <div className="w-full max-w-4xl flex justify-between items-center gap-4 mb-6 bg-white p-3 md:p-4 rounded-3xl shadow-md animate-page-enter">
+    <div className="min-h-screen bg-[#c4e2f5] p-4 md:p-6 flex flex-col items-center font-sans overflow-x-hidden">
+      <div className="w-full max-w-5xl flex justify-between items-center bg-white/90 backdrop-blur-sm p-2 pr-4 md:p-3 md:pr-6 rounded-full shadow-sm border border-white mb-6 md:mb-10 animate-page-enter">
         <div className="flex items-center gap-3 md:gap-4">
-          <div className="rounded-full p-0.5 bg-linear-to-br from-quiz-primary to-quiz-light">
+          <div className="rounded-full p-0.5 bg-linear-to-br from-[#1591dc] to-[#4bb8fa] shadow-sm">
             <div className="rounded-full bg-white p-0.5">
               <AvatarDisplay
-                size={56}
+                size={48}
                 bgColor={user.warnaAvatar || "#87CEEB"}
                 poseSrc={poseSrc}
                 hatSrc={hatSrc}
@@ -238,158 +233,176 @@ function QuizRoom() {
               />
             </div>
           </div>
-          <div>
-            <h2 className="text-lg md:text-xl font-extrabold text-quiz-dark m-0 leading-tight">
+          <div className="flex flex-col justify-center">
+            <h2 className="text-base md:text-lg font-extrabold text-[#2c5ead] m-0 leading-tight">
               {user.nama}
             </h2>
-            <Tag
-              color="#1591dc"
-              className="rounded-full mt-1 border-none font-bold text-xs"
-            >
+            <span className="text-xs md:text-sm font-bold text-[#1591dc] mt-0.5">
               ⭐ Skor: {score}
-            </Tag>
+            </span>
           </div>
         </div>
+
         <Button
           type="primary"
           shape="round"
           icon={<ThunderboltOutlined />}
-          size="large"
-          className="bg-yellow-400! hover:bg-yellow-300! text-quiz-dark! border-none! shadow-md font-bold hidden sm:flex items-center"
+          size="middle"
+          className="bg-linear-to-r from-yellow-400 to-yellow-500 hover:from-yellow-300 hover:to-yellow-400 text-[#2c5ead]! border-none! shadow-md font-extrabold flex items-center transition-transform hover:scale-105"
           title="Buff segera hadir!"
           disabled
         >
-          Buff
+          <span className="hidden sm:inline">Buff</span>
         </Button>
       </div>
 
-      <div className="w-full max-w-4xl">
-        <div className="flex items-end gap-3 md:gap-4 mb-3 pl-2">
-          <div className="animate-float shrink-0">
-            <img
-              src={pakElio}
-              alt="Pak Elio"
-              className="h-28 md:h-36 object-contain drop-shadow-2xl"
-            />
-          </div>
-          <div
-            className={`relative rounded-2xl rounded-bl-sm px-4 py-3 mb-6 md:mb-10 text-sm md:text-base font-semibold shadow-md max-w-[75%] transition-colors duration-300 ${elioReaction.bubbleClass}`}
-          >
-            {elioReaction.quote}
-            {isAnswered && (
-              <span className="ml-2 text-lg align-middle">
-                {elioReaction.badge}
-              </span>
-            )}
-            <div
-              className={`absolute -left-2 bottom-3 w-0 h-0 border-y-8 border-y-transparent border-r-10 transition-colors duration-300 ${elioReaction.bubbleTailBorderClass}`}
-            ></div>
+      <div className="w-full max-w-5xl flex flex-col md:flex-row gap-6 lg:gap-8 items-start mt-2">
+        <div className="w-full md:w-1/3 shrink-0 pt-16 relative flex justify-center md:justify-end">
+          <div className="relative w-full max-w-[240px] md:max-w-[260px]">
+            <div className="absolute -top-16 md:-top-20 -right-4 md:-right-8 w-44 md:w-52 bg-white border-2 border-[#1591dc] rounded-2xl p-2.5 md:p-3 shadow-lg z-50 transition-all duration-300">
+              <div className="absolute -bottom-2 left-8 w-4 h-4 bg-white border-b-2 border-r-2 border-[#1591dc] rotate-45"></div>
+
+              <p
+                className={`text-center text-[11px] md:text-xs font-bold leading-relaxed m-0 ${elioReaction.textClass}`}
+              >
+                {elioReaction.quote}
+                {isAnswered && (
+                  <span className="ml-1 text-sm align-middle inline-block animate-bounce">
+                    {elioReaction.badge}
+                  </span>
+                )}
+              </p>
+            </div>
+
+            <div className="relative bg-white shadow-xl p-3 md:p-4 pb-6 rounded-xl transition-transform duration-300 hover:-translate-y-1">
+              <div
+                className="relative w-full h-44 md:h-48 bg-linear-to-b from-[#4bb8fa] to-[#1591dc] rounded-lg z-10"
+                style={{ clipPath: "inset(-150% -100% 0 -100%)" }}
+              >
+                <img
+                  src={pakElio}
+                  alt="Pak Elio"
+                  className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-[20%] w-[125%] max-w-none object-contain drop-shadow-2xl z-10"
+                />
+              </div>
+              <div className="absolute -right-3 bottom-5 bg-[#1591dc] text-white px-5 py-1.5 shadow-lg rotate-[-6deg] font-extrabold text-xs md:text-sm border-2 border-white z-20">
+                Pak Elio
+              </div>
+            </div>
           </div>
         </div>
-        <Card className="w-full rounded-3xl shadow-lg border-none relative overflow-hidden">
-          <Progress
-            percent={progressPercent}
-            showInfo={false}
-            strokeColor={{ "0%": "#1591dc", "100%": "#4bb8fa" }}
-            trailColor="#e6f4ff"
-            className="absolute top-0 left-0 w-full m-0 p-0"
-            strokeWidth={8}
-          />
 
-          <div className="p-3 md:p-6 pt-6">
-            <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
-              <span className="bg-quiz-light text-white text-xs px-3 py-1.5 rounded-full font-bold">
-                Soal {currentIndex + 1} / {questions.length}
-              </span>
-              {quiz?.kategori && (
-                <Tag
-                  color={categoryStyle.tagColor}
-                  icon={<CategoryIcon />}
-                  className="rounded-full border-none font-bold m-0"
+        <div className="w-full md:w-2/3">
+          <Card className="w-full rounded-3xl shadow-lg border-none relative overflow-hidden">
+            <Progress
+              percent={progressPercent}
+              showInfo={false}
+              strokeColor={{ "0%": "#1591dc", "100%": "#4bb8fa" }}
+              trailColor="#e6f4ff"
+              className="absolute top-0 left-0 w-full m-0 p-0"
+              strokeWidth={8}
+            />
+
+            <div className="p-4 md:p-6 pt-8">
+              <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
+                <span className="bg-[#4bb8fa] text-white text-xs px-3 py-1.5 rounded-full font-bold shadow-xs">
+                  Soal {currentIndex + 1} / {questions.length}
+                </span>
+                {quiz?.kategori && (
+                  <Tag
+                    color={categoryStyle.tagColor}
+                    icon={<CategoryIcon />}
+                    className="rounded-full border-none font-bold m-0 shadow-xs"
+                  >
+                    {quiz.kategori}
+                  </Tag>
+                )}
+              </div>
+
+              <h2 className="text-xl md:text-2xl font-extrabold text-[#2c5ead] mb-6 leading-relaxed">
+                {currentQuestion.teksSoal}
+              </h2>
+
+              <div className="grid grid-cols-1 gap-3 mb-6">
+                {OPTION_KEYS.map((key) => {
+                  const optionText = currentQuestion[`opsi${key}`];
+                  const isCorrectOption = key === currentQuestion.kunciJawaban;
+                  const isSelected = key === selectedOption;
+                  const isHovered = !isAnswered && hoveredOption === key;
+
+                  let stateClass = "bg-white border-[#c4e2f5] text-[#2c5ead]";
+                  let badgeClass = "bg-[#c4e2f5] text-[#1591dc]";
+
+                  if (isHovered) {
+                    stateClass =
+                      "bg-[#1591dc] border-[#1591dc] text-white shadow-lg scale-[1.01]";
+                    badgeClass = "bg-white/25 text-white";
+                  }
+
+                  if (isAnswered) {
+                    if (isCorrectOption) {
+                      stateClass =
+                        "bg-green-500 text-white border-green-500 shadow-md scale-[1.02]";
+                      badgeClass = "bg-white/25 text-white";
+                    } else if (isSelected) {
+                      stateClass = "bg-red-400 text-white border-red-400";
+                      badgeClass = "bg-white/25 text-white";
+                    } else {
+                      stateClass =
+                        "bg-white text-gray-400 border-[#c4e2f5] opacity-60";
+                      badgeClass = "bg-[#c4e2f5] text-gray-400";
+                    }
+                  }
+
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => handleAnswer(key)}
+                      onMouseEnter={() => setHoveredOption(key)}
+                      onMouseLeave={() =>
+                        setHoveredOption((prev) => (prev === key ? null : prev))
+                      }
+                      disabled={isAnswered}
+                      className={`w-full flex items-center gap-3 text-left transition-all duration-200 p-3.5 rounded-2xl border-2 font-bold text-base md:text-lg ${stateClass} ${
+                        isAnswered
+                          ? "cursor-default"
+                          : "cursor-pointer active:scale-95"
+                      }`}
+                    >
+                      <span
+                        className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-extrabold transition-colors duration-150 ${badgeClass}`}
+                      >
+                        {key}
+                      </span>
+                      <span className="flex-1">{optionText}</span>
+                      {isAnswered && isCorrectOption && (
+                        <CheckCircleFilled className="text-xl shrink-0 drop-shadow-md" />
+                      )}
+                      {isAnswered && isSelected && !isCorrectOption && (
+                        <CloseCircleFilled className="text-xl shrink-0" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {isAnswered && (
+                <Button
+                  type="primary"
+                  size="large"
+                  block
+                  shape="round"
+                  className="bg-[#1591dc]! hover:bg-[#4bb8fa]! border-none! font-bold h-12 text-lg shadow-lg animate-page-enter"
+                  onClick={handleNext}
                 >
-                  {quiz.kategori}
-                </Tag>
+                  {currentIndex + 1 >= questions.length
+                    ? "Lihat Hasil 🏁"
+                    : "Soal Berikutnya →"}
+                </Button>
               )}
             </div>
-
-            <h2 className="text-xl md:text-2xl font-extrabold text-quiz-dark mb-6 leading-relaxed">
-              {currentQuestion.teksSoal}
-            </h2>
-
-            <div className="grid grid-cols-1 gap-3 mb-6">
-              {OPTION_KEYS.map((key) => {
-                const optionText = currentQuestion[`opsi${key}`];
-                const isCorrectOption = key === currentQuestion.kunciJawaban;
-                const isSelected = key === selectedOption;
-                const isHovered = !isAnswered && hoveredOption === key;
-
-                let stateClass = "bg-white border-quiz-bg text-quiz-dark";
-                let badgeClass = "bg-quiz-bg text-quiz-primary";
-
-                if (isHovered) {
-                  stateClass =
-                    "bg-quiz-primary border-quiz-primary text-white shadow-lg scale-[1.01]";
-                  badgeClass = "bg-white/25 text-white";
-                }
-
-                if (isAnswered) {
-                  if (isCorrectOption) {
-                    stateClass = "bg-green-500 text-white border-green-500";
-                    badgeClass = "bg-white/25 text-white";
-                  } else if (isSelected) {
-                    stateClass = "bg-red-400 text-white border-red-400";
-                    badgeClass = "bg-white/25 text-white";
-                  } else {
-                    stateClass =
-                      "bg-white text-gray-400 border-quiz-bg opacity-60";
-                    badgeClass = "bg-quiz-bg text-gray-400";
-                  }
-                }
-
-                return (
-                  <button
-                    key={key}
-                    onClick={() => handleAnswer(key)}
-                    onMouseEnter={() => setHoveredOption(key)}
-                    onMouseLeave={() =>
-                      setHoveredOption((prev) => (prev === key ? null : prev))
-                    }
-                    disabled={isAnswered}
-                    className={`w-full flex items-center gap-3 text-left transition-all duration-150 p-3.5 rounded-2xl border-2 font-bold text-base md:text-lg ${stateClass} ${isAnswered ? "cursor-default" : "cursor-pointer"}`}
-                  >
-                    <span
-                      className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-extrabold transition-colors duration-150 ${badgeClass}`}
-                    >
-                      {key}
-                    </span>
-                    <span className="flex-1">{optionText}</span>
-                    {isAnswered && isCorrectOption && (
-                      <CheckCircleFilled className="text-xl shrink-0" />
-                    )}
-                    {isAnswered && isSelected && !isCorrectOption && (
-                      <CloseCircleFilled className="text-xl shrink-0" />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-
-            {isAnswered && (
-              <Button
-                type="primary"
-                size="large"
-                block
-                shape="round"
-                className="bg-quiz-primary! hover:bg-quiz-light! border-none! font-bold animate-page-enter"
-                onClick={handleNext}
-              >
-                {currentIndex + 1 >= questions.length
-                  ? "Lihat Hasil 🏁"
-                  : "Soal Berikutnya →"}
-              </Button>
-            )}
-          </div>
-        </Card>
+          </Card>
+        </div>
       </div>
     </div>
   );

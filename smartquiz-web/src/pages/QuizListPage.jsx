@@ -22,9 +22,6 @@ export default function QuizListPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState(null);
 
-  // Refresh data avatar terbaru dari backend, biar pose/topi/warna yang
-  // ditampilkan di sini selalu sinkron sama yang terakhir disimpan user
-  // (sama seperti pola yang dipakai di Navbar.jsx).
   useEffect(() => {
     const stored = localStorage.getItem("user");
     if (!stored) return;
@@ -49,9 +46,7 @@ export default function QuizListPage() {
           topiRotation: data.hatRotation || 0,
         }));
       })
-      .catch(() => {
-        // Gagal refresh avatar bukan hal fatal, tetap pakai data localStorage.
-      });
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -75,7 +70,7 @@ export default function QuizListPage() {
   const poseSrc = user?.poseId ? `/${user.poseId}.svg` : "/pose1.svg";
 
   return (
-    <div className="min-h-screen bg-quiz-bg p-8 font-sans">
+    <div className="min-h-screen bg-[#c4e2f5] p-8 font-sans">
       <div className="max-w-6xl mx-auto">
         {/* HERO: avatar user siap tanding */}
         <div
@@ -83,13 +78,12 @@ export default function QuizListPage() {
           style={{ minHeight: 260 }}
         >
           <div className="absolute inset-0 bg-linear-to-r from-[#e6f4ff] to-white">
-            <div className="absolute -top-10 -left-10 w-72 h-72 bg-quiz-bg rounded-full mix-blend-multiply filter blur-3xl opacity-60 animate-float-slow"></div>
+            <div className="absolute -top-10 -left-10 w-72 h-72 bg-[#c4e2f5] rounded-full mix-blend-multiply filter blur-3xl opacity-60 animate-float-slow"></div>
           </div>
 
           <div className="relative z-10 flex flex-col md:flex-row items-center gap-8 px-10 py-10 w-full">
             <div className="shrink-0 relative">
-              {/* Blob lembut di belakang avatar biar ada kedalaman, bukan cuma nempel di bg polos */}
-              <div className="absolute inset-0 bg-quiz-light/30 rounded-full blur-2xl scale-110"></div>
+              <div className="absolute inset-0 bg-[#4bb8fa]/30 rounded-full blur-2xl scale-110"></div>
               <div className="relative animate-float">
                 <AvatarDisplay
                   size={220}
@@ -114,7 +108,7 @@ export default function QuizListPage() {
               >
                 🎯 Arena Kuis
               </Tag>
-              <h1 className="text-3xl md:text-4xl font-extrabold text-quiz-dark mb-2 leading-tight">
+              <h1 className="text-3xl md:text-4xl font-extrabold text-[#2c5ead] mb-2 leading-tight">
                 Siap Bertanding, {user?.nama || "Sobat"}?
               </h1>
               <p className="text-gray-500 font-medium text-lg max-w-lg">
@@ -125,7 +119,6 @@ export default function QuizListPage() {
           </div>
         </div>
 
-        {/* LIST KUIS */}
         {isLoading && (
           <div className="flex justify-center py-20">
             <Spin size="large" />
@@ -146,8 +139,11 @@ export default function QuizListPage() {
         {!isLoading && !errorMsg && quizzes.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {quizzes.map((quiz) => {
-              const { icon: CategoryIcon, gradientClass, tagColor } =
-                getCategoryStyle(quiz.kategori);
+              const {
+                icon: CategoryIcon,
+                gradientClass,
+                tagColor,
+              } = getCategoryStyle(quiz.kategori);
               return (
                 <Card
                   key={quiz.id}
@@ -167,13 +163,13 @@ export default function QuizListPage() {
                     >
                       {quiz.kategori}
                     </Tag>
-                    <h3 className="text-xl font-bold text-quiz-dark mb-1">
+                    <h3 className="text-xl font-bold text-[#2c5ead] mb-1">
                       {quiz.judul}
                     </h3>
                     <p className="text-gray-400 text-sm mb-4 line-clamp-2">
                       {quiz.deskripsi || "Yuk uji kemampuanmu di kuis ini!"}
                     </p>
-                    <div className="flex items-center justify-between text-xs font-bold text-quiz-primary mb-4">
+                    <div className="flex items-center justify-between text-xs font-bold text-[#1591dc] mb-4">
                       <span>
                         <QuestionCircleOutlined /> {quiz.jumlahSoal} Soal
                       </span>
@@ -186,7 +182,7 @@ export default function QuizListPage() {
                       shape="round"
                       block
                       icon={<PlayCircleOutlined />}
-                      className="bg-quiz-primary hover:bg-quiz-light! border-none font-bold"
+                      className="bg-[#1591dc] hover:bg-[#4bb8fa]! border-none font-bold"
                       disabled={quiz.jumlahSoal === 0}
                     >
                       {quiz.jumlahSoal === 0 ? "Belum Ada Soal" : "Mulai Kuis"}

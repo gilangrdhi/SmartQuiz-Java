@@ -33,7 +33,7 @@ export default function Dashboard() {
           <div className="relative z-20 w-full pl-[38%] pr-14 py-10 flex flex-col justify-center">
             <Tag
               color="#1591dc"
-              className="w-fit mb-4 text-sm font-bold px-4 py-1.5 rounded-full border-none shadow-sm"
+              className="w-fit mb-4 text-xl font-bold px-4 py-1.5 rounded-full border-none shadow-sm"
             >
               🌟 Selamat Datang Kembali!
             </Tag>

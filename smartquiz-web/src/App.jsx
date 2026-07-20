@@ -51,6 +51,15 @@ export default function App() {
           }
         />
 
+        <Route
+          path="/quiz/:quizId"
+          element={
+            <ProtectedRoute>
+              <QuizRoomKeyed />
+            </ProtectedRoute>
+          }
+        />
+
         <Route element={<NavbarLayout />}>
           <Route
             path="/dashboard"
@@ -65,14 +74,6 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <QuizListPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/quiz/:quizId"
-            element={
-              <ProtectedRoute>
-                <QuizRoomKeyed />
               </ProtectedRoute>
             }
           />
