@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card, Tag, Button, Spin, Empty } from "antd";
+import { Card, Tag, Button, Spin, Empty, Modal } from "antd";
 import {
   PlayCircleOutlined,
   ClockCircleOutlined,
@@ -21,6 +21,9 @@ export default function QuizListPage() {
   const [quizzes, setQuizzes] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState(null);
+
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [selectedQuiz, setSelectedQuiz] = useState(null);
 
   useEffect(() => {
     const stored = localStorage.getItem("user");
@@ -63,6 +66,19 @@ export default function QuizListPage() {
       .finally(() => setIsLoading(false));
   }, []);
 
+  const handleCardClick = (quiz) => {
+    if (quiz.jumlahSoal === 0) return;
+    setSelectedQuiz(quiz);
+    setIsModalVisible(true);
+  };
+
+  const handleStartQuiz = () => {
+    setIsModalVisible(false);
+    if (selectedQuiz) {
+      navigate(`/quiz/${selectedQuiz.id}`);
+    }
+  };
+
   const hatSrc =
     user?.jenisTopi && user.jenisTopi !== "none"
       ? `/${user.jenisTopi}.svg`
@@ -72,7 +88,6 @@ export default function QuizListPage() {
   return (
     <div className="min-h-screen bg-[#c4e2f5] p-8 font-sans">
       <div className="max-w-6xl mx-auto">
-        {/* HERO: avatar user siap tanding */}
         <div
           className="relative w-full bg-white rounded-[40px] shadow-2xl mt-4 mb-12 flex items-center border-4 border-white/60 animate-page-enter overflow-hidden"
           style={{ minHeight: 260 }}
@@ -144,12 +159,13 @@ export default function QuizListPage() {
                 gradientClass,
                 tagColor,
               } = getCategoryStyle(quiz.kategori);
+
               return (
                 <Card
                   key={quiz.id}
                   hoverable
                   className="rounded-3xl border-none shadow-lg overflow-hidden group cursor-pointer"
-                  onClick={() => navigate(`/quiz/${quiz.id}`)}
+                  onClick={() => handleCardClick(quiz)} // Ubah aksi onClick di sini
                 >
                   <div
                     className={`h-28 bg-linear-to-br ${gradientClass} flex justify-center items-center`}
@@ -185,7 +201,7 @@ export default function QuizListPage() {
                       className="bg-[#1591dc] hover:bg-[#4bb8fa]! border-none font-bold"
                       disabled={quiz.jumlahSoal === 0}
                     >
-                      {quiz.jumlahSoal === 0 ? "Belum Ada Soal" : "Mulai Kuis"}
+                      {quiz.jumlahSoal === 0 ? "Belum Ada Soal" : "Pilih Kuis"}
                     </Button>
                   </div>
                 </Card>
@@ -194,6 +210,52 @@ export default function QuizListPage() {
           </div>
         )}
       </div>
+
+      <Modal
+        title={
+          <span className="text-[#2c5ead] font-bold text-lg">Detail Kuis</span>
+        }
+        open={isModalVisible}
+        onCancel={() => setIsModalVisible(false)}
+        centered
+        footer={[
+          <Button
+            key="back"
+            shape="round"
+            onClick={() => setIsModalVisible(false)}
+          >
+            Batal
+          </Button>,
+          <Button
+            key="submit"
+            type="primary"
+            shape="round"
+            className="bg-[#1591dc] hover:bg-[#4bb8fa]! font-bold"
+            onClick={handleStartQuiz}
+          >
+            Mulai Sekarang
+          </Button>,
+        ]}
+      >
+        {selectedQuiz && (
+          <div className="py-4">
+            <h3 className="text-xl font-extrabold text-[#2c5ead] mb-2">
+              {selectedQuiz.judul}
+            </h3>
+            <p className="text-gray-600 mb-4">{selectedQuiz.deskripsi}</p>
+            <div className="flex gap-4">
+              <Tag color="blue" className="rounded-full font-bold px-3 py-1">
+                <QuestionCircleOutlined className="mr-1" />{" "}
+                {selectedQuiz.jumlahSoal} Soal
+              </Tag>
+              <Tag color="cyan" className="rounded-full font-bold px-3 py-1">
+                <ClockCircleOutlined className="mr-1" />{" "}
+                {selectedQuiz.durasiMenit} Menit
+              </Tag>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

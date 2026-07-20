@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Card, Button, Progress, Tag, Spin, Result } from "antd";
+import { Card, Button, Progress, Tag, Spin, Result, Modal } from "antd"; // Tambah Modal
 import {
   ThunderboltOutlined,
   CheckCircleFilled,
   CloseCircleFilled,
+  LeftOutlined,
+  RightOutlined,
+  AppstoreOutlined,
 } from "@ant-design/icons";
 
 import AvatarDisplay from "../components/AvatarDisplay";
@@ -55,7 +58,6 @@ function getElioReaction(isAnswered, isCorrect, questionIndex) {
 function QuizRoom() {
   const { quizId } = useParams();
   const navigate = useNavigate();
-
   const user = JSON.parse(localStorage.getItem("user")) || { nama: "Sobat" };
 
   const [quiz, setQuiz] = useState(null);
@@ -64,12 +66,10 @@ function QuizRoom() {
   const [loadError, setLoadError] = useState(null);
 
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [selectedOption, setSelectedOption] = useState(null);
+  const [answers, setAnswers] = useState({});
   const [hoveredOption, setHoveredOption] = useState(null);
-  const [isAnswered, setIsAnswered] = useState(false);
-  const [score, setScore] = useState(0);
-  const [correctCount, setCorrectCount] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
+  const [isDaftarSoalVisible, setIsDaftarSoalVisible] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -88,36 +88,38 @@ function QuizRoom() {
       })
       .catch((err) => {
         console.error(err);
-        setLoadError(
-          "Gagal memuat kuis ini. Kuis mungkin belum punya soal atau sudah dihapus.",
-        );
+        setLoadError("Gagal memuat kuis ini.");
       })
       .finally(() => setIsLoading(false));
   }, [quizId]);
 
+  const correctCount = questions.reduce((count, q, idx) => {
+    return answers[idx] === q.kunciJawaban ? count + 1 : count;
+  }, 0);
+  const score = correctCount * POIN_PER_SOAL_BENAR;
+
   const currentQuestion = questions[currentIndex];
+  const currentAnswer = answers[currentIndex];
+  const isAnswered = !!currentAnswer;
+  const selectedOption = currentAnswer;
 
   const handleAnswer = (optionKey) => {
     if (isAnswered) return;
-
-    setSelectedOption(optionKey);
-    setIsAnswered(true);
-
-    if (optionKey === currentQuestion.kunciJawaban) {
-      setScore((prev) => prev + POIN_PER_SOAL_BENAR);
-      setCorrectCount((prev) => prev + 1);
-    }
+    setAnswers((prev) => ({ ...prev, [currentIndex]: optionKey }));
   };
 
   const handleNext = () => {
-    if (currentIndex + 1 >= questions.length) {
-      setIsFinished(true);
-      return;
+    if (currentIndex + 1 < questions.length) {
+      setCurrentIndex((prev) => prev + 1);
+      setHoveredOption(null);
     }
-    setCurrentIndex((prev) => prev + 1);
-    setSelectedOption(null);
-    setIsAnswered(false);
-    setHoveredOption(null);
+  };
+
+  const handlePrev = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex((prev) => prev - 1);
+      setHoveredOption(null);
+    }
   };
 
   const hatSrc =
@@ -126,17 +128,16 @@ function QuizRoom() {
       : null;
   const poseSrc = user.poseId ? `/${user.poseId}.svg` : "/pose1.svg";
 
-  if (isLoading) {
+  if (isLoading)
     return (
       <div className="min-h-screen bg-[#c4e2f5] flex items-center justify-center">
         <Spin size="large" />
       </div>
     );
-  }
-
-  if (loadError) {
+  if (loadError)
     return (
       <div className="min-h-screen bg-[#c4e2f5] flex items-center justify-center p-6">
+        {" "}
         <Result
           status="warning"
           title={loadError}
@@ -148,15 +149,12 @@ function QuizRoom() {
         />
       </div>
     );
-  }
-
-  if (questions.length === 0) {
+  if (questions.length === 0)
     return (
       <div className="min-h-screen bg-[#c4e2f5] flex items-center justify-center p-6">
         <Result
           status="info"
           title="Kuis ini belum punya soal"
-          subTitle="Coba pilih kuis lain dulu ya, atau tunggu Pak Elio nambahin soalnya."
           extra={
             <Button type="primary" onClick={() => navigate("/quiz")}>
               Kembali ke List Kuis
@@ -165,7 +163,6 @@ function QuizRoom() {
         />
       </div>
     );
-  }
 
   if (isFinished) {
     const winRate = Math.round((correctCount / questions.length) * 100);
@@ -212,6 +209,40 @@ function QuizRoom() {
   const categoryStyle = getCategoryStyle(quiz?.kategori);
   const CategoryIcon = categoryStyle.icon;
 
+  const handleFinishQuiz = () => {
+    const answeredCount = Object.keys(answers).length;
+    const unansweredCount = questions.length - answeredCount;
+
+    if (unansweredCount > 0) {
+      Modal.confirm({
+        title: <span className="text-red-500 font-bold">Tunggu Dulu!</span>,
+        content: `Kamu masih punya ${unansweredCount} soal yang belum dijawab. Yakin mau langsung dikumpulkan?`,
+        okText: "Tetap Kumpulkan",
+        cancelText: "Cek Lagi",
+        okButtonProps: { danger: true, shape: "round", className: "font-bold" },
+        cancelButtonProps: { shape: "round", className: "font-bold" },
+        centered: true,
+        onOk: () => setIsFinished(true),
+      });
+    } else {
+      Modal.confirm({
+        title: <span className="text-[#2c5ead] font-bold">Kuis Selesai!</span>,
+        content:
+          "Hebat, semua soal sudah kamu jawab! Yakin ingin melihat hasilnya sekarang?",
+        okText: "Lihat Hasil",
+        cancelText: "Batal",
+        okButtonProps: {
+          type: "primary",
+          shape: "round",
+          className: "bg-[#1591dc] font-bold",
+        },
+        cancelButtonProps: { shape: "round", className: "font-bold" },
+        centered: true,
+        onOk: () => setIsFinished(true),
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#c4e2f5] p-4 md:p-6 flex flex-col items-center font-sans overflow-x-hidden">
       <div className="w-full max-w-5xl flex justify-between items-center bg-white/90 backdrop-blur-sm p-2 pr-4 md:p-3 md:pr-6 rounded-full shadow-sm border border-white mb-6 md:mb-10 animate-page-enter">
@@ -256,18 +287,18 @@ function QuizRoom() {
         </Button>
       </div>
 
-      <div className="w-full max-w-5xl flex flex-col md:flex-row gap-6 lg:gap-8 items-start mt-2">
-        <div className="w-full md:w-1/3 shrink-0 pt-16 relative flex justify-center md:justify-end">
-          <div className="relative w-full max-w-[240px] md:max-w-[260px]">
-            <div className="absolute -top-16 md:-top-20 -right-4 md:-right-8 w-44 md:w-52 bg-white border-2 border-[#1591dc] rounded-2xl p-2.5 md:p-3 shadow-lg z-50 transition-all duration-300">
-              <div className="absolute -bottom-2 left-8 w-4 h-4 bg-white border-b-2 border-r-2 border-[#1591dc] rotate-45"></div>
+      <div className="w-full max-w-5xl flex flex-col md:flex-row gap-6 lg:gap-8 items-start mt-10 md:mt-12">
+        <div className="w-full md:w-1/3 shrink-0 pt-8 md:pt-10 relative flex justify-center md:justify-end md:pr-4">
+          <div className="relative w-full max-w-60 md:max-w-70">
+            <div className="absolute -top-20 md:-top-24 -right-4 md:-right-8 w-56 md:w-64 bg-white border-2 border-[#1591dc] rounded-3xl p-3 md:p-4 shadow-xl z-50 transition-all duration-300">
+              <div className="absolute -bottom-2.5 left-12 md:left-14 w-4 h-4 bg-white border-b-2 border-r-2 border-[#1591dc] rotate-45"></div>
 
               <p
-                className={`text-center text-[11px] md:text-xs font-bold leading-relaxed m-0 ${elioReaction.textClass}`}
+                className={`text-center text-xs md:text-sm font-bold leading-relaxed m-0 ${elioReaction.textClass}`}
               >
                 {elioReaction.quote}
                 {isAnswered && (
-                  <span className="ml-1 text-sm align-middle inline-block animate-bounce">
+                  <span className="ml-1 text-sm md:text-base align-middle inline-block animate-bounce">
                     {elioReaction.badge}
                   </span>
                 )}
@@ -276,16 +307,16 @@ function QuizRoom() {
 
             <div className="relative bg-white shadow-xl p-3 md:p-4 pb-6 rounded-xl transition-transform duration-300 hover:-translate-y-1">
               <div
-                className="relative w-full h-44 md:h-48 bg-linear-to-b from-[#4bb8fa] to-[#1591dc] rounded-lg z-10"
+                className="relative w-full h-56 md:h-64 bg-linear-to-b from-[#4bb8fa] to-[#1591dc] rounded-lg z-10"
                 style={{ clipPath: "inset(-150% -100% 0 -100%)" }}
               >
                 <img
                   src={pakElio}
                   alt="Pak Elio"
-                  className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-[20%] w-[125%] max-w-none object-contain drop-shadow-2xl z-10"
+                  className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-[35%] w-[145%] max-w-none object-contain drop-shadow-2xl z-10"
                 />
               </div>
-              <div className="absolute -right-3 bottom-5 bg-[#1591dc] text-white px-5 py-1.5 shadow-lg rotate-[-6deg] font-extrabold text-xs md:text-sm border-2 border-white z-20">
+              <div className="absolute -right-3 bottom-6 bg-[#1591dc] text-white px-5 py-1.5 shadow-lg -rotate-6 font-extrabold text-xs md:text-sm border-2 border-white z-20">
                 Pak Elio
               </div>
             </div>
@@ -363,11 +394,7 @@ function QuizRoom() {
                         setHoveredOption((prev) => (prev === key ? null : prev))
                       }
                       disabled={isAnswered}
-                      className={`w-full flex items-center gap-3 text-left transition-all duration-200 p-3.5 rounded-2xl border-2 font-bold text-base md:text-lg ${stateClass} ${
-                        isAnswered
-                          ? "cursor-default"
-                          : "cursor-pointer active:scale-95"
-                      }`}
+                      className={`w-full flex items-center gap-3 text-left transition-all duration-200 p-3.5 rounded-2xl border-2 font-bold text-base md:text-lg ${stateClass} ${isAnswered ? "cursor-default" : "cursor-pointer active:scale-95"}`}
                     >
                       <span
                         className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-extrabold transition-colors duration-150 ${badgeClass}`}
@@ -386,24 +413,106 @@ function QuizRoom() {
                 })}
               </div>
 
-              {isAnswered && (
+              <div className="flex justify-between items-center mt-6 pt-4 border-t-2 border-[#e6f4ff] gap-2">
+                <Button
+                  shape="round"
+                  icon={<LeftOutlined />}
+                  onClick={handlePrev}
+                  disabled={currentIndex === 0}
+                  className="font-bold text-[#1591dc] border-[#1591dc]"
+                >
+                  <span className="hidden sm:inline">Sebelumnya</span>
+                </Button>
+
+                <Button
+                  type="dashed"
+                  shape="round"
+                  icon={<AppstoreOutlined />}
+                  onClick={() => setIsDaftarSoalVisible(true)}
+                  className="font-bold text-[#2c5ead] border-[#2c5ead]"
+                >
+                  {currentIndex + 1} / {questions.length}
+                </Button>
+
                 <Button
                   type="primary"
-                  size="large"
-                  block
                   shape="round"
-                  className="bg-[#1591dc]! hover:bg-[#4bb8fa]! border-none! font-bold h-12 text-lg shadow-lg animate-page-enter"
-                  onClick={handleNext}
+                  className="bg-[#1591dc] hover:bg-[#4bb8fa]! border-none font-bold"
+                  onClick={
+                    currentIndex + 1 >= questions.length
+                      ? handleFinishQuiz
+                      : handleNext
+                  }
                 >
-                  {currentIndex + 1 >= questions.length
-                    ? "Lihat Hasil 🏁"
-                    : "Soal Berikutnya →"}
+                  <span className="hidden sm:inline">
+                    {currentIndex + 1 >= questions.length
+                      ? "Selesai"
+                      : "Selanjutnya"}
+                  </span>
+                  {currentIndex + 1 < questions.length && <RightOutlined />}
                 </Button>
-              )}
+              </div>
             </div>
           </Card>
         </div>
       </div>
+
+      <Modal
+        title={
+          <div className="text-center text-[#2c5ead] font-extrabold text-lg">
+            Daftar Soal
+          </div>
+        }
+        open={isDaftarSoalVisible}
+        onCancel={() => setIsDaftarSoalVisible(false)}
+        footer={null}
+        centered
+        width={350}
+      >
+        <div className="grid grid-cols-5 gap-3 mt-4">
+          {questions.map((_, idx) => {
+            const isCurrent = currentIndex === idx;
+            const hasAnswered = !!answers[idx];
+            let btnClass = "font-bold text-gray-500";
+            let btnType = "default";
+
+            if (isCurrent) {
+              btnType = "primary";
+              btnClass = "font-bold bg-[#1591dc]! border-none shadow-md";
+            } else if (hasAnswered) {
+              btnType = "default";
+              btnClass = "font-bold border-[#1591dc]! text-[#1591dc]!";
+            }
+
+            return (
+              <Button
+                key={idx}
+                type={btnType}
+                className={btnClass}
+                onClick={() => {
+                  setCurrentIndex(idx);
+                  setIsDaftarSoalVisible(false);
+                }}
+              >
+                {idx + 1}
+              </Button>
+            );
+          })}
+        </div>
+        <div className="mt-6 flex justify-center gap-4 text-xs font-bold text-gray-500">
+          <span className="flex items-center gap-1">
+            <div className="w-3 h-3 bg-[#1591dc] rounded-full"></div> Saat ini
+          </span>
+          <span className="flex items-center gap-1">
+            <div className="w-3 h-3 border-2 border-[#1591dc] rounded-full"></div>{" "}
+            Terjawab
+          </span>
+          <span className="flex items-center gap-1">
+            <div className="w-3 h-3 bg-gray-100 border border-gray-300 rounded-full"></div>{" "}
+            Kosong
+          </span>
+        </div>
+      </Modal>
     </div>
   );
 }
