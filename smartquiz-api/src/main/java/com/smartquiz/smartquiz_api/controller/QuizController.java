@@ -1,14 +1,18 @@
 package com.smartquiz.smartquiz_api.controller;
 
 import com.smartquiz.smartquiz_api.model.Quiz;
+import com.smartquiz.smartquiz_api.model.User;
+import com.smartquiz.smartquiz_api.dto.QuizResultRequest;
 import com.smartquiz.smartquiz_api.repository.QuizRepository;
 import com.smartquiz.smartquiz_api.repository.QuestionRepository;
+import com.smartquiz.smartquiz_api.repository.UserRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @RestController
@@ -18,10 +22,12 @@ public class QuizController {
 
     private final QuizRepository quizRepository;
     private final QuestionRepository questionRepository;
+    private final UserRepository userRepository; 
 
-    public QuizController(QuizRepository quizRepository, QuestionRepository questionRepository) {
+    public QuizController(QuizRepository quizRepository, QuestionRepository questionRepository, UserRepository userRepository) {
         this.quizRepository = quizRepository;
         this.questionRepository = questionRepository;
+        this.userRepository = userRepository;
     }
 
     @GetMapping
@@ -83,5 +89,44 @@ public class QuizController {
         map.put("published", quiz.isPublished());
         map.put("jumlahSoal", questionRepository.findByQuizId(quiz.getId()).size());
         return map;
+    }
+
+    @PostMapping("/submit-result")
+    public ResponseEntity<?> submitQuizResult(@RequestBody QuizResultRequest request) {
+        if (request == null || request.getUserId() == null) {
+            return ResponseEntity.badRequest().body("Data submit tidak lengkap!");
+        }
+
+        Optional<User> userOptional = userRepository.findById(request.getUserId());
+
+        if (userOptional.isEmpty()) {
+            return ResponseEntity.badRequest().body("User tidak ditemukan!");
+        }
+
+        User user = userOptional.get();
+
+        user.setTotalQuiz(safeInt(user.getTotalQuiz()) + 1);
+        user.setTotalPoin(safeInt(user.getTotalPoin()) + safeInt(request.getEarnedPoints()));
+
+        if (Boolean.TRUE.equals(request.getIsWin())) {
+            user.setKuisMenang(safeInt(user.getKuisMenang()) + 1);
+        }
+
+        user.calculateTingkatKemenangan();
+
+        if (request.getUsedBuffs() != null && !request.getUsedBuffs().isEmpty()) {
+            if (user.getActiveBuffs() == null) {
+                user.setActiveBuffs(new java.util.ArrayList<>());
+            }
+            user.getActiveBuffs().removeAll(request.getUsedBuffs());
+        }
+
+        userRepository.save(user);
+
+        return ResponseEntity.ok(user);
+    }
+
+    private int safeInt(Integer value) {
+        return value != null ? value : 0;
     }
 }

@@ -1,5 +1,8 @@
 package com.smartquiz.smartquiz_api.model;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import jakarta.persistence.*;
 
 @Entity
@@ -16,7 +19,7 @@ public class User {
     @Column(name = "nama", nullable = false, unique = true)
     private String nama;
 
-   @Column(name = "warna_avatar", nullable = false)
+    @Column(name = "warna_avatar", nullable = false)
     private String warnaAvatar = "#4bb8fa";
 
     @Column(name = "jenis_topi", nullable = false)
@@ -24,9 +27,6 @@ public class User {
 
     @Column(name = "pose_id", nullable = false)
     private String poseId = "pose1";
-
-    @Column(name = "total_poin")
-    private Integer totalPoin = 0;
 
     @Column(name = "topi_x")
     private Integer topiX;
@@ -42,6 +42,23 @@ public class User {
 
     @Column(name = "topi_rotation")
     private Integer topiRotation;
+
+    @Column(name = "total_quiz")
+    private Integer totalQuiz = 0;
+
+    @Column(name = "total_poin")
+    private Integer totalPoin = 0;
+
+    @Column(name = "kuis_menang")
+    private Integer kuisMenang = 0;
+
+    @Column(name = "tingkat_kemenangan")
+    private Double tingkatKemenangan = 0.0;
+
+    @ElementCollection
+    @CollectionTable(name = "user_buffs", joinColumns = @JoinColumn(name = "user_id"))
+    @Column(name = "buff_name")
+    private List<String> activeBuffs = new ArrayList<>();
 
     public User() {}
 
@@ -63,9 +80,6 @@ public class User {
     public String getPoseId() { return poseId; }
     public void setPoseId(String poseId) { this.poseId = poseId; }
 
-    public Integer getTotalPoin() { return totalPoin; }
-    public void setTotalPoin(Integer totalPoin) { this.totalPoin = totalPoin; }
-
     public Integer getTopiX() { return topiX; }
     public void setTopiX(Integer topiX) { this.topiX = topiX; }
 
@@ -81,4 +95,26 @@ public class User {
     public Integer getTopiRotation() { return topiRotation; }
     public void setTopiRotation(Integer topiRotation) { this.topiRotation = topiRotation; }
 
+    public Integer getTotalQuiz() { return totalQuiz; }
+    public void setTotalQuiz(Integer totalQuiz) { this.totalQuiz = totalQuiz; }
+
+    public Integer getTotalPoin() { return totalPoin; }
+    public void setTotalPoin(Integer totalPoin) { this.totalPoin = totalPoin; }
+
+    public Integer getKuisMenang() { return kuisMenang; }
+    public void setKuisMenang(Integer kuisMenang) { this.kuisMenang = kuisMenang; }
+
+    public Double getTingkatKemenangan() { return tingkatKemenangan; }
+    public void setTingkatKemenangan(Double tingkatKemenangan) { this.tingkatKemenangan = tingkatKemenangan; }
+
+    public List<String> getActiveBuffs() { return activeBuffs; }
+    public void setActiveBuffs(List<String> activeBuffs) { this.activeBuffs = activeBuffs; }
+
+    public void calculateTingkatKemenangan() {
+        if (this.totalQuiz != null && this.totalQuiz > 0) {
+            this.tingkatKemenangan = ((double) this.kuisMenang / this.totalQuiz) * 100;
+        } else {
+            this.tingkatKemenangan = 0.0;
+        }
+    }
 }

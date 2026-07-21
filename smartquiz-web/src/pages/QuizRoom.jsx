@@ -1,6 +1,17 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Card, Button, Progress, Tag, Spin, Result, Modal } from "antd"; // Tambah Modal
+import {
+  Card,
+  Button,
+  Progress,
+  Tag,
+  Spin,
+  Result,
+  Modal,
+  message,
+} from "antd";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import axios from "axios";
 import {
   ThunderboltOutlined,
   CheckCircleFilled,
@@ -8,6 +19,8 @@ import {
   LeftOutlined,
   RightOutlined,
   AppstoreOutlined,
+  TrophyFilled,
+  CheckCircleOutlined,
 } from "@ant-design/icons";
 
 import AvatarDisplay from "../components/AvatarDisplay";
@@ -58,7 +71,13 @@ function getElioReaction(isAnswered, isCorrect, questionIndex) {
 function QuizRoom() {
   const { quizId } = useParams();
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem("user")) || { nama: "Sobat" };
+  const queryClient = useQueryClient();
+
+  // Pastikan user.id ada di localStorage untuk dikirim ke API
+  const user = JSON.parse(localStorage.getItem("user")) || {
+    id: 1,
+    nama: "Sobat",
+  };
 
   const [quiz, setQuiz] = useState(null);
   const [questions, setQuestions] = useState([]);
@@ -71,16 +90,38 @@ function QuizRoom() {
   const [isFinished, setIsFinished] = useState(false);
   const [isDaftarSoalVisible, setIsDaftarSoalVisible] = useState(false);
 
+  const { mutate: submitQuizResult, isPending: isSubmitting } = useMutation({
+    mutationFn: async (payload) => {
+      const res = await axios.post(
+        "http://localhost:8080/api/quizzes/submit-result",
+        payload,
+      );
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["userProfile"] });
+      setIsFinished(true);
+    },
+    onError: (err) => {
+      message.error(
+        `Gagal menyimpan skor: ${err.response?.data || err.message}`,
+      );
+      setIsFinished(true);
+    },
+  });
+
   useEffect(() => {
     Promise.all([
-      fetch(`/api/quizzes/${quizId}`).then((res) => {
+      fetch(`http://localhost:8080/api/quizzes/${quizId}`).then((res) => {
         if (!res.ok) throw new Error("Kuis tidak ditemukan");
         return res.json();
       }),
-      fetch(`/api/questions/quiz/${quizId}`).then((res) => {
-        if (!res.ok) throw new Error("Gagal mengambil soal");
-        return res.json();
-      }),
+      fetch(`http://localhost:8080/api/questions/quiz/${quizId}`).then(
+        (res) => {
+          if (!res.ok) throw new Error("Gagal mengambil soal");
+          return res.json();
+        },
+      ),
     ])
       .then(([quizData, questionData]) => {
         setQuiz(quizData);
@@ -97,6 +138,11 @@ function QuizRoom() {
     return answers[idx] === q.kunciJawaban ? count + 1 : count;
   }, 0);
   const score = correctCount * POIN_PER_SOAL_BENAR;
+  const winRate =
+    questions.length > 0
+      ? Math.round((correctCount / questions.length) * 100)
+      : 0;
+  const isWin = winRate >= 60;
 
   const currentQuestion = questions[currentIndex];
   const currentAnswer = answers[currentIndex];
@@ -122,11 +168,65 @@ function QuizRoom() {
     }
   };
 
+  const executeSubmit = () => {
+    submitQuizResult({
+      userId: user.id,
+      earnedPoints: score,
+      isWin: isWin,
+      usedBuffs: [],
+    });
+  };
+
+  const handleFinishQuiz = () => {
+    const answeredCount = Object.keys(answers).length;
+    const unansweredCount = questions.length - answeredCount;
+
+    if (unansweredCount > 0) {
+      Modal.confirm({
+        title: <span className="text-red-500 font-bold">Tunggu Dulu!</span>,
+        content: `Kamu masih punya ${unansweredCount} soal yang belum dijawab. Yakin mau langsung dikumpulkan?`,
+        okText: "Tetap Kumpulkan",
+        cancelText: "Cek Lagi",
+        okButtonProps: { danger: true, shape: "round", className: "font-bold" },
+        cancelButtonProps: { shape: "round", className: "font-bold" },
+        centered: true,
+        onOk: executeSubmit,
+      });
+    } else {
+      Modal.confirm({
+        title: <span className="text-[#2c5ead] font-bold">Kuis Selesai!</span>,
+        content:
+          "Hebat, semua soal sudah kamu jawab! Yakin ingin melihat hasilnya sekarang?",
+        okText: "Lihat Hasil",
+        cancelText: "Batal",
+        okButtonProps: {
+          type: "primary",
+          shape: "round",
+          className: "bg-[#1591dc] font-bold",
+        },
+        cancelButtonProps: { shape: "round", className: "font-bold" },
+        centered: true,
+        onOk: executeSubmit,
+      });
+    }
+  };
+
   const hatSrc =
     user.jenisTopi && user.jenisTopi !== "none"
       ? `/${user.jenisTopi}.svg`
       : null;
   const poseSrc = user.poseId ? `/${user.poseId}.svg` : "/pose1.svg";
+
+  if (isSubmitting) {
+    return (
+      <div className="min-h-screen bg-[#c4e2f5] flex flex-col items-center justify-center gap-4">
+        <Spin size="large" />
+        <p className="text-[#2c5ead] font-bold animate-pulse">
+          Menghitung dan menyimpan skormu...
+        </p>
+      </div>
+    );
+  }
 
   if (isLoading)
     return (
@@ -137,7 +237,6 @@ function QuizRoom() {
   if (loadError)
     return (
       <div className="min-h-screen bg-[#c4e2f5] flex items-center justify-center p-6">
-        {" "}
         <Result
           status="warning"
           title={loadError}
@@ -165,36 +264,68 @@ function QuizRoom() {
     );
 
   if (isFinished) {
-    const winRate = Math.round((correctCount / questions.length) * 100);
     return (
-      <div className="min-h-screen bg-[#c4e2f5] flex items-center justify-center p-6">
-        <Card className="max-w-lg w-full rounded-3xl shadow-xl border-none text-center p-4">
-          <Result
-            status={winRate >= 60 ? "success" : "info"}
-            title="Kuis Selesai!"
-            subTitle={`Kamu menjawab benar ${correctCount} dari ${questions.length} soal.`}
-          />
-          <div className="flex justify-center gap-8 mb-6">
-            <div>
-              <p className="text-gray-400 text-sm font-bold">Skor</p>
-              <p className="text-3xl font-extrabold text-[#1591dc]">{score}</p>
+      <div className="min-h-screen bg-[#c4e2f5] flex items-center justify-center p-4">
+        <Card className="max-w-md w-full rounded-4xl shadow-2xl border-none overflow-hidden relative p-0 animate-page-enter">
+          <div
+            className={`absolute top-0 left-0 w-full h-32 ${isWin ? "bg-linear-to-r from-green-400 to-green-500" : "bg-linear-to-r from-orange-400 to-orange-500"}`}
+          ></div>
+
+          <div className="relative z-10 flex flex-col items-center pt-10 pb-6 px-6">
+            <div className="bg-white p-5 rounded-full shadow-lg mb-5 flex items-center justify-center w-24 h-24">
+              <TrophyFilled
+                className={`text-6xl ${isWin ? "text-yellow-400" : "text-gray-300"}`}
+              />
             </div>
-            <div>
-              <p className="text-gray-400 text-sm font-bold">Akurasi</p>
-              <p className="text-3xl font-extrabold text-[#2c5ead]">
-                {winRate}%
-              </p>
+
+            <h1 className="text-3xl font-extrabold text-gray-800 mb-1 text-center">
+              {isWin ? "Luar Biasa!" : "Tetap Semangat!"}
+            </h1>
+            <p className="text-gray-500 font-bold mb-8 text-center text-sm">
+              Kamu telah menyelesaikan kuis ini.
+            </p>
+
+            {/* Stats Grid */}
+            <div className="w-full grid grid-cols-2 gap-4 mb-8">
+              <div className="bg-blue-50 rounded-2xl p-4 text-center shadow-sm border border-blue-100">
+                <p className="text-[#1591dc] font-extrabold text-xs mb-1 uppercase tracking-wider">
+                  Skor Total
+                </p>
+                <p className="text-3xl font-black text-[#2c5ead]">{score}</p>
+              </div>
+              <div className="bg-blue-50 rounded-2xl p-4 text-center shadow-sm border border-blue-100">
+                <p className="text-[#1591dc] font-extrabold text-xs mb-1 uppercase tracking-wider">
+                  Akurasi
+                </p>
+                <p className="text-3xl font-black text-[#2c5ead]">{winRate}%</p>
+              </div>
+
+              <div className="col-span-2 bg-green-50 rounded-2xl p-4 flex justify-between items-center shadow-sm border border-green-100 px-6">
+                <div className="flex items-center gap-3">
+                  <CheckCircleOutlined className="text-green-500 text-2xl" />
+                  <span className="font-extrabold text-green-700">
+                    Total Benar
+                  </span>
+                </div>
+                <span className="font-black text-green-700 text-2xl">
+                  {correctCount}{" "}
+                  <span className="text-sm font-bold text-green-600/70">
+                    / {questions.length}
+                  </span>
+                </span>
+              </div>
             </div>
+
+            <Button
+              type="primary"
+              size="large"
+              shape="round"
+              className="w-full bg-[#1591dc] hover:bg-[#4bb8fa]! border-none font-bold h-12 text-base shadow-md hover:shadow-lg transition-all"
+              onClick={() => navigate("/quiz")}
+            >
+              Kembali ke Beranda Kuis
+            </Button>
           </div>
-          <Button
-            type="primary"
-            size="large"
-            shape="round"
-            className="bg-[#1591dc] hover:bg-[#4bb8fa]! border-none font-bold"
-            onClick={() => navigate("/quiz")}
-          >
-            Kembali ke List Kuis
-          </Button>
         </Card>
       </div>
     );
@@ -208,40 +339,6 @@ function QuizRoom() {
   );
   const categoryStyle = getCategoryStyle(quiz?.kategori);
   const CategoryIcon = categoryStyle.icon;
-
-  const handleFinishQuiz = () => {
-    const answeredCount = Object.keys(answers).length;
-    const unansweredCount = questions.length - answeredCount;
-
-    if (unansweredCount > 0) {
-      Modal.confirm({
-        title: <span className="text-red-500 font-bold">Tunggu Dulu!</span>,
-        content: `Kamu masih punya ${unansweredCount} soal yang belum dijawab. Yakin mau langsung dikumpulkan?`,
-        okText: "Tetap Kumpulkan",
-        cancelText: "Cek Lagi",
-        okButtonProps: { danger: true, shape: "round", className: "font-bold" },
-        cancelButtonProps: { shape: "round", className: "font-bold" },
-        centered: true,
-        onOk: () => setIsFinished(true),
-      });
-    } else {
-      Modal.confirm({
-        title: <span className="text-[#2c5ead] font-bold">Kuis Selesai!</span>,
-        content:
-          "Hebat, semua soal sudah kamu jawab! Yakin ingin melihat hasilnya sekarang?",
-        okText: "Lihat Hasil",
-        cancelText: "Batal",
-        okButtonProps: {
-          type: "primary",
-          shape: "round",
-          className: "bg-[#1591dc] font-bold",
-        },
-        cancelButtonProps: { shape: "round", className: "font-bold" },
-        centered: true,
-        onOk: () => setIsFinished(true),
-      });
-    }
-  };
 
   return (
     <div className="min-h-screen bg-[#c4e2f5] p-4 md:p-6 flex flex-col items-center font-sans overflow-x-hidden">
@@ -292,7 +389,6 @@ function QuizRoom() {
           <div className="relative w-full max-w-60 md:max-w-70">
             <div className="absolute -top-20 md:-top-24 -right-4 md:-right-8 w-56 md:w-64 bg-white border-2 border-[#1591dc] rounded-3xl p-3 md:p-4 shadow-xl z-50 transition-all duration-300">
               <div className="absolute -bottom-2.5 left-12 md:left-14 w-4 h-4 bg-white border-b-2 border-r-2 border-[#1591dc] rotate-45"></div>
-
               <p
                 className={`text-center text-xs md:text-sm font-bold leading-relaxed m-0 ${elioReaction.textClass}`}
               >
@@ -333,7 +429,6 @@ function QuizRoom() {
               className="absolute top-0 left-0 w-full m-0 p-0"
               strokeWidth={8}
             />
-
             <div className="p-4 md:p-6 pt-8">
               <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
                 <span className="bg-[#4bb8fa] text-white text-xs px-3 py-1.5 rounded-full font-bold shadow-xs">
@@ -423,7 +518,6 @@ function QuizRoom() {
                 >
                   <span className="hidden sm:inline">Sebelumnya</span>
                 </Button>
-
                 <Button
                   type="dashed"
                   shape="round"
@@ -433,7 +527,6 @@ function QuizRoom() {
                 >
                   {currentIndex + 1} / {questions.length}
                 </Button>
-
                 <Button
                   type="primary"
                   shape="round"
