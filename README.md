@@ -1,53 +1,98 @@
-# SmartQuiz - Gamified Educational Platform 🚀
+# 🎯 SmartQuiz - Interactive Learning Platform
 
-## Deskripsi
-SmartQuiz adalah aplikasi kuis edukasi interaktif berbasis web. Berawal dari aplikasi Java CLI sederhana, proyek ini telah berevolusi menjadi platform Full-Stack modern yang mengedepankan *gamification*. 
+SmartQuiz adalah aplikasi kuis interaktif berbasis web (Full-Stack) yang dirancang untuk memberikan pengalaman belajar yang gamified dan menyenangkan. Proyek ini memisahkan layanan menjadi dua bagian utama: **Front-End** berbasis React dan **Back-End** berbasis Java Spring Boot.
 
-Bukan sekadar kuis biasa, SmartQuiz menghadirkan pengalaman belajar yang asik dengan fitur *login* sosial, kustomisasi avatar awan bergaya *Among Us*, sistem *buff/power-up* ala Quizizz, serta dipandu oleh maskot Guru Rusa yang interaktif!
+## 🚀 Tech Stack
 
-## 🎨 UI/UX & Color Palette
-Aplikasi ini didesain dengan antarmuka yang ramah dan menyenangkan, menggunakan palet warna utama:
-- **Dark Blue** (`#2c5ead`): Teks & Elemen Utama
-- **Medium Blue** (`#1591dc`): Primary Buttons & Aksen
-- **Light Blue** (`#4bb8fa`): Avatar & Interaksi Hover
-- **Pale Blue** (`#c4e2f5`): Background Aplikasi
+**Front-End (`smartquiz-web`):**
+*   **Library & Build Tool:** [React.js](https://reactjs.org/) + [Vite](https://vitejs.dev/)
+*   **Styling:** [Tailwind CSS](https://tailwindcss.com/) & [Ant Design](https://ant.design/)
+*   **State & API Handling:** React Hooks (terdapat *custom hooks* seperti `useSubmitQuizResult`)
+*   **Routing:** React Router DOM (Halaman Dashboard, Login, Profile, Quiz List, Quiz Room)
 
-## 🛠️ Tech Stack Utama
-**Frontend (Web Client):**
-- React.js (Vite)
-- Tailwind CSS / Ant Design (UI Framework & Styling)
-- React Query (Data Fetching & State Management)
+**Back-End (`smartquiz-api`):**
+*   **Framework:** [Spring Boot](https://spring.io/projects/spring-boot) (Java)
+*   **Build Tool:** Maven (`mvnw`)
+*   **Arsitektur:** MVC (Model-View-Controller) pattern dengan pemisahan pada folder `controller`, `model`, `repository`, dan `dto`.
 
-**Backend (RESTful API):**
-- Java 17 & Spring Boot
-- Spring Data JPA
-- Database: MySQL
-- Autentikasi: Google OAuth 2.0 (SSO)
+## ✨ Fitur Utama
 
-## 📁 Arsitektur & Struktur Monorepo
-Proyek ini menggunakan pendekatan Monorepo yang memisahkan aplikasi ke dalam beberapa lingkungan:
+*   **Interactive Quiz Room:** Halaman kuis dinamis dengan maskot interaktif (Pak Elio) yang merespons jawaban.
+*   **Kustomisasi Avatar:** Pengguna dapat menyesuaikan avatar mereka (warna, pose, jenis topi, dan ukurannya).
+*   **Sistem Skor & Dashboard:** Perhitungan skor kuis, persentase kemenangan, dan tampilan riwayat pada dasbor pengguna.
+*   **Modular REST API:** Endpoint backend terstruktur rapi untuk *Quiz*, *Question*, *User*, dan *Avatar*.
 
-1. `smartquiz-api/` (Backend - Spring Boot)
-   - `model/`: Entity/Class representasi tabel database.
-   - `repository/`: Mengelola akses data (Spring Data JPA) ke MySQL.
-   - `controller/`: REST API Endpoints (Penerima request dari frontend).
-   - *Berbasis arsitektur MVC / N-Tier modern.*
+## 🚧 Fitur Mendatang (On Progress)
 
-2. `smartquiz-web/` (Frontend - React)
-   - *Akan berisi komponen UI interaktif, manajemen state avatar, dan logika permainan kuis.*
+Aplikasi ini masih terus dikembangkan! Berikut adalah beberapa fitur gamifikasi dan fungsionalitas tambahan yang sedang dikerjakan:
 
-3. `smartquiz-cli/` (Legacy)
-   - *Versi pertama aplikasi berbasis Terminal/Console sebagai sejarah pengembangan fundamental Java.*
+*   ⏳ **Timer & Buff System:** Penambahan logika waktu mundur (*timer*) saat mengerjakan soal, serta penggunaan item *Buff* (gamifikasi) agar suasana kuis jadi jauh lebih seru, interaktif, dan menegangkan.
+*   📊 **User Statistics:** Perekaman dan penampilan data statistik hasil kuis secara komprehensif langsung di halaman Profil pengguna.
+*   👨‍🏫 **Teacher Dashboard:** Pembuatan halaman khusus Guru/Admin untuk melakukan manajemen kuis dan CRUD (Create, Read, Update, Delete) bank soal dengan mudah.
 
-## ✨ Fitur Utama (On Progress)
-- [x] **CRUD Soal Kuis** (Terintegrasi dengan MySQL API)
-- [ ] **Google Sign-In** (Akses masuk yang cepat dan aman)
-- [ ] **Cloud Avatar Customizer** (Pemain bisa mengganti topi/aksesoris avatar awan)
-- [ ] **Deer Teacher Guide** (Karakter rusa interaktif di halaman kuis)
-- [ ] **Quizizz-style Buffs** (Sistem power-up saat menjawab soal)
+## 📂 Struktur Proyek
 
-## Aturan Pengembangan (Coding Guidelines)
-1. Tulis kode yang *Clean*, *Scalable*, dan *Reusable*.
-2. Pisahkan *logic* pengambilan data (React Query) dari komponen UI (Ant Design/Tailwind).
-3. Penamaan variabel/method menggunakan `camelCase`, Class/Komponen menggunakan `PascalCase`.
-4. Selalu utamakan pengalaman pengguna (UX) yang responsif dan interaktif.
+```text
+gilangrdhi-smartquiz-java/
+├── smartquiz-api/                # ☕ BACK-END (Spring Boot)
+│   ├── mvnw / mvnw.cmd           # Maven Wrapper
+│   ├── pom.xml                   # Konfigurasi dependensi Maven
+│   ├── src/main/java/.../smartquiz_api/
+│   │   ├── controller/           # Endpoint REST API (Avatar, Question, Quiz, User)
+│   │   ├── dto/                  # Data Transfer Objects (QuizResultRequest)
+│   │   ├── model/                # Entitas Database (AvatarPayload, Question, Quiz, User)
+│   │   ├── repository/           # Antarmuka query ke Database
+│   │   └── SmartquizApiApplication.java
+│   └── src/main/resources/
+│       └── application.properties # Konfigurasi server & database
+│
+└── smartquiz-web/                # ⚛️ FRONT-END (React + Vite)
+    ├── package.json
+    ├── tailwind.config.js
+    ├── vite.config.js
+    └── src/
+        ├── api/                  # Custom hooks & API calls
+        ├── components/           # Komponen UI Reusable (Navbar, AvatarCustomizer, dll)
+        ├── pages/                # Halaman utama aplikasi (Dashboard, QuizRoom, dll)
+        ├── utils/                # Fungsi helper & styling kategori kuis
+        ├── App.jsx               # Setup routing
+        └── main.jsx              # Entry point React
+```
+
+## ⚙️ Cara Instalasi & Menjalankan Secara Lokal
+
+Pastikan komputer kamu sudah terinstal **Java (JDK 17+)**, **Node.js**, dan database yang sesuai dengan konfigurasi di `application.properties`.
+
+1.  **Setup & Jalankan Back-End (`smartquiz-api`)**
+    Buka terminal dan arahkan ke folder backend:
+    ```bash
+    cd smartquiz-api
+    
+    # Jika menggunakan Windows:
+    mvnw spring-boot:run
+    
+    # Jika menggunakan Mac/Linux:
+    ./mvnw spring-boot:run
+    ```
+    *Server API biasanya akan berjalan di `http://localhost:8080` (tergantung konfigurasi port di properties).*
+
+2.  **Setup & Jalankan Front-End (`smartquiz-web`)**
+    Buka terminal baru dan arahkan ke folder frontend:
+    ```bash
+    cd smartquiz-web
+    
+    # Install semua dependensi
+    npm install
+    
+    # Jalankan development server
+    npm run dev
+    ```
+    *Buka browser dan akses URL yang diberikan oleh Vite (biasanya `http://localhost:5173`).*
+
+## 👨‍💻 Author
+
+**Gilang Ardhi Maulana**
+*   GitHub: [@gilangrdhi](https://github.com/gilangrdhi)
+
+---
+*Dibuat untuk memberikan pengalaman kuis teknis yang responsif dan interaktif.*
