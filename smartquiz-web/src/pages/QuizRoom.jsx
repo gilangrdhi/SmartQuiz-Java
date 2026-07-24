@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Card,
@@ -21,6 +21,10 @@ import {
   AppstoreOutlined,
   TrophyFilled,
   CheckCircleOutlined,
+  ClockCircleFilled,
+  ScissorOutlined,
+  BulbFilled,
+  RocketFilled,
 } from "@ant-design/icons";
 
 import AvatarDisplay from "../components/AvatarDisplay";
@@ -29,6 +33,62 @@ import pakElio from "../assets/pakElio.svg";
 
 const OPTION_KEYS = ["A", "B", "C", "D"];
 const POIN_PER_SOAL_BENAR = 100;
+
+const CRITICAL_TIME_THRESHOLD = 60;
+const WARNING_TIME_THRESHOLD = 180;
+
+const BUFF_DEFINITIONS = [
+  {
+    key: "extra_time",
+    label: "Extra Time",
+    desc: "Tambah 30 detik waktu pengerjaan",
+    icon: ClockCircleFilled,
+    color: "#1591dc",
+  },
+  {
+    key: "fifty_fifty",
+    label: "50 : 50",
+    desc: "Hilangkan 2 opsi jawaban yang salah",
+    icon: ScissorOutlined,
+    color: "#f5222d",
+  },
+  {
+    key: "hint",
+    label: "Bocoran",
+    desc: "Beri sinyal jawaban yang benar",
+    icon: BulbFilled,
+    color: "#faad14",
+  },
+  {
+    key: "double_poin",
+    label: "Double Poin",
+    desc: "Poin soal ini x2 jika dijawab benar",
+    icon: RocketFilled,
+    color: "#722ed1",
+  },
+];
+
+function formatTime(totalSeconds) {
+  const safeSeconds = Math.max(0, totalSeconds || 0);
+  const minutes = Math.floor(safeSeconds / 60);
+  const seconds = safeSeconds % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
+function computeBuffCounts(rawBuffs) {
+  const counts = {};
+  BUFF_DEFINITIONS.forEach(({ key }) => {
+    counts[key] = 0;
+  });
+
+  if (Array.isArray(rawBuffs) && rawBuffs.length > 0) {
+    rawBuffs.forEach((code) => {
+      if (counts[code] !== undefined) counts[code] += 1;
+    });
+    return counts;
+  }
+  return counts;
+}
 
 const IDLE_QUOTES = [
   "Ayo perhatikan soal di samping! Jangan sampai salah ya!",
@@ -73,11 +133,22 @@ function QuizRoom() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  // Pastikan user.id ada di localStorage untuk dikirim ke API
-  const user = JSON.parse(localStorage.getItem("user")) || {
-    id: 1,
-    nama: "Sobat",
-  };
+  const fallbackUser = useMemo(
+    () => ({
+      id: 1,
+      nama: "Sobat",
+      activeBuffs: [],
+    }),
+    [],
+  );
+
+  const user = useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem("user")) || fallbackUser;
+    } catch {
+      return fallbackUser;
+    }
+  }, [fallbackUser]);
 
   const [quiz, setQuiz] = useState(null);
   const [questions, setQuestions] = useState([]);
@@ -89,6 +160,26 @@ function QuizRoom() {
   const [hoveredOption, setHoveredOption] = useState(null);
   const [isFinished, setIsFinished] = useState(false);
   const [isDaftarSoalVisible, setIsDaftarSoalVisible] = useState(false);
+
+  const [timeLeft, setTimeLeft] = useState(null);
+  const autoSubmittedRef = useRef(false);
+
+  const [buffCounts, setBuffCounts] = useState(() =>
+    computeBuffCounts(user.activeBuffs),
+  );
+  const [usedBuffsLog, setUsedBuffsLog] = useState([]);
+  const [isBuffModalVisible, setIsBuffModalVisible] = useState(false);
+  const [eliminatedOptions, setEliminatedOptions] = useState({});
+  const [revealedHints, setRevealedHints] = useState({});
+  const [doublePoinQuestions, setDoublePoinQuestions] = useState({});
+  const [droppedBuff, setDroppedBuff] = useState(null);
+  const [activeBuffAnimation, setActiveBuffAnimation] = useState(null);
+  const buffAnimTimerRef = useRef(null);
+  const [streak, setStreak] = useState(0);
+  const [totalScore, setTotalScore] = useState(0);
+  const [floatingPoints, setFloatingPoints] = useState([]);
+  const [isStreakBroken, setIsStreakBroken] = useState(false);
+  const [lastStreak, setLastStreak] = useState(0);
 
   const { mutate: submitQuizResult, isPending: isSubmitting } = useMutation({
     mutationFn: async (payload) => {
@@ -111,33 +202,75 @@ function QuizRoom() {
   });
 
   useEffect(() => {
-    Promise.all([
-      fetch(`http://localhost:8080/api/quizzes/${quizId}`).then((res) => {
-        if (!res.ok) throw new Error("Kuis tidak ditemukan");
-        return res.json();
-      }),
-      fetch(`http://localhost:8080/api/questions/quiz/${quizId}`).then(
-        (res) => {
-          if (!res.ok) throw new Error("Gagal mengambil soal");
-          return res.json();
-        },
-      ),
-    ])
-      .then(([quizData, questionData]) => {
+    const loadQuizData = async () => {
+      setIsLoading(true);
+      setLoadError(null);
+
+      try {
+        const [quizRes, questionRes] = await Promise.all([
+          fetch(`http://localhost:8080/api/quizzes/${quizId}`),
+          fetch(`http://localhost:8080/api/questions/quiz/${quizId}`),
+        ]);
+
+        if (!quizRes.ok) throw new Error("Kuis tidak ditemukan");
+        if (!questionRes.ok) throw new Error("Gagal mengambil soal");
+
+        const quizData = await quizRes.json();
+        const questionData = await questionRes.json();
+
         setQuiz(quizData);
         setQuestions(questionData);
-      })
-      .catch((err) => {
+
+        setCurrentIndex(0);
+        setAnswers({});
+        setIsFinished(false);
+        setTimeLeft((quizData.durasiMenit || 10) * 60);
+        autoSubmittedRef.current = false;
+        setUsedBuffsLog([]);
+        setEliminatedOptions({});
+        setRevealedHints({});
+        setDoublePoinQuestions({});
+
+        setBuffCounts(computeBuffCounts(user.activeBuffs));
+      } catch (err) {
         console.error(err);
         setLoadError("Gagal memuat kuis ini.");
-      })
-      .finally(() => setIsLoading(false));
-  }, [quizId]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadQuizData();
+  }, [quizId, user]);
+
+  useEffect(() => {
+    if (timeLeft === null || isLoading || isFinished || isSubmitting) return;
+
+    if (timeLeft <= 0) {
+      if (!autoSubmittedRef.current) {
+        autoSubmittedRef.current = true;
+        message.warning("Waktu habis! Kuis otomatis dikumpulkan.");
+        executeSubmit();
+      }
+      return;
+    }
+
+    const intervalId = setTimeout(() => {
+      setTimeLeft((prev) => (prev !== null ? prev - 1 : prev));
+    }, 1000);
+
+    return () => clearTimeout(intervalId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeLeft, isLoading, isFinished, isSubmitting]);
 
   const correctCount = questions.reduce((count, q, idx) => {
     return answers[idx] === q.kunciJawaban ? count + 1 : count;
   }, 0);
-  const score = correctCount * POIN_PER_SOAL_BENAR;
+  const score = questions.reduce((total, q, idx) => {
+    if (answers[idx] !== q.kunciJawaban) return total;
+    const multiplier = doublePoinQuestions[idx] ? 2 : 1;
+    return total + POIN_PER_SOAL_BENAR * multiplier;
+  }, 0);
   const winRate =
     questions.length > 0
       ? Math.round((correctCount / questions.length) * 100)
@@ -149,9 +282,77 @@ function QuizRoom() {
   const isAnswered = !!currentAnswer;
   const selectedOption = currentAnswer;
 
-  const handleAnswer = (optionKey) => {
+  const handleAnswer = async (optionKey) => {
     if (isAnswered) return;
     setAnswers((prev) => ({ ...prev, [currentIndex]: optionKey }));
+
+    const isCorrectOption = optionKey === currentQuestion.kunciJawaban;
+
+    if (isCorrectOption) {
+      const newStreak = streak + 1;
+      setStreak(newStreak);
+
+      let questionPoints = POIN_PER_SOAL_BENAR;
+      questionPoints += newStreak * 10;
+      if (timeLeft) {
+        questionPoints += Math.floor(timeLeft / 10);
+      }
+
+      if (doublePoinQuestions[currentIndex]) {
+        questionPoints *= 2;
+      }
+
+      setTotalScore((prev) => prev + questionPoints);
+
+      const animId = Date.now();
+      setFloatingPoints((prev) => [
+        ...prev,
+        { id: animId, points: questionPoints },
+      ]);
+      setTimeout(() => {
+        setFloatingPoints((prev) => prev.filter((p) => p.id !== animId));
+      }, 1500);
+
+      const dropChance = Math.random();
+      if (newStreak % 3 === 0 || dropChance <= 0.35) {
+        const availableBuffs = [
+          "extra_time",
+          "fifty_fifty",
+          "hint",
+          "double_poin",
+        ];
+        const randomBuff =
+          availableBuffs[Math.floor(Math.random() * availableBuffs.length)];
+        const buffInfo = BUFF_DEFINITIONS.find((b) => b.key === randomBuff);
+
+        setBuffCounts((prev) => ({
+          ...prev,
+          [randomBuff]: (prev[randomBuff] || 0) + 1,
+        }));
+
+        setDroppedBuff(buffInfo);
+        setTimeout(() => setDroppedBuff(null), 2500);
+
+        try {
+          await axios.post(
+            `http://localhost:8080/api/users/${user.id}/add-buff`,
+            { buffType: randomBuff },
+          );
+        } catch (error) {
+          console.error("Gagal simpan buff:", error);
+        }
+      }
+    } else {
+      if (streak >= 2) {
+        setLastStreak(streak);
+        setIsStreakBroken(true);
+
+        setTimeout(() => {
+          setIsStreakBroken(false);
+        }, 2500);
+      }
+      setStreak(0);
+    }
   };
 
   const handleNext = () => {
@@ -168,14 +369,66 @@ function QuizRoom() {
     }
   };
 
-  const executeSubmit = () => {
+  const handleUseBuff = (buffKey) => {
+    if (!buffCounts[buffKey] || buffCounts[buffKey] <= 0) return;
+
+    setIsBuffModalVisible(false);
+
+    const buffInfo = BUFF_DEFINITIONS.find((b) => b.key === buffKey);
+    setActiveBuffAnimation(buffInfo);
+
+    if (buffAnimTimerRef.current) clearTimeout(buffAnimTimerRef.current);
+    buffAnimTimerRef.current = setTimeout(() => {
+      setActiveBuffAnimation(null);
+    }, 2500);
+
+    switch (buffKey) {
+      case "extra_time":
+        setTimeLeft((prev) => (prev !== null ? prev + 30 : prev));
+        message.success("⏱️ +30 detik ditambahkan!");
+        break;
+
+      case "fifty_fifty": {
+        const wrongOptions = OPTION_KEYS.filter(
+          (k) => k !== currentQuestion.kunciJawaban,
+        );
+        const toEliminate = [...wrongOptions]
+          .sort(() => Math.random() - 0.5)
+          .slice(0, 2);
+        setEliminatedOptions((prev) => ({
+          ...prev,
+          [currentIndex]: toEliminate,
+        }));
+        break;
+      }
+
+      case "hint": {
+        setRevealedHints((prev) => ({ ...prev, [currentIndex]: true }));
+        break;
+      }
+
+      case "double_poin": {
+        setDoublePoinQuestions((prev) => ({ ...prev, [currentIndex]: true }));
+        break;
+      }
+
+      default:
+        return;
+    }
+
+    setBuffCounts((prev) => ({ ...prev, [buffKey]: prev[buffKey] - 1 }));
+    setUsedBuffsLog((prev) => [...prev, buffKey]);
+  };
+
+  function executeSubmit() {
     submitQuizResult({
       userId: user.id,
-      earnedPoints: score,
+      earnedPoints: totalScore,
       isWin: isWin,
-      usedBuffs: [],
+      usedBuffs: usedBuffsLog,
+      remainingInventory: buffCounts,
     });
-  };
+  }
 
   const handleFinishQuiz = () => {
     const answeredCount = Object.keys(answers).length;
@@ -340,10 +593,49 @@ function QuizRoom() {
   const categoryStyle = getCategoryStyle(quiz?.kategori);
   const CategoryIcon = categoryStyle.icon;
 
+  const isTimeCritical =
+    timeLeft !== null && timeLeft <= CRITICAL_TIME_THRESHOLD;
+  const isTimeWarning =
+    !isTimeCritical && timeLeft !== null && timeLeft <= WARNING_TIME_THRESHOLD;
+  const totalBuffsLeft = Object.values(buffCounts).reduce(
+    (sum, n) => sum + n,
+    0,
+  );
+  const currentEliminated = eliminatedOptions[currentIndex] || [];
+  const isHintRevealed = !!revealedHints[currentIndex];
+  const isDoublePoinActive = !!doublePoinQuestions[currentIndex];
+
   return (
     <div className="min-h-screen bg-[#c4e2f5] p-4 md:p-6 flex flex-col items-center font-sans overflow-x-hidden">
-      <div className="w-full max-w-5xl flex justify-between items-center bg-white/90 backdrop-blur-sm p-2 pr-4 md:p-3 md:pr-6 rounded-full shadow-sm border border-white mb-6 md:mb-10 animate-page-enter">
-        <div className="flex items-center gap-3 md:gap-4">
+      <style>
+        {`
+          @keyframes suckIntoInventory {
+            0% { opacity: 0; transform: translateY(30px) scale(0.5); }
+            15% { opacity: 1; transform: translateY(-5px) scale(1.1); }
+            25% { transform: translateY(0) scale(1); }
+            80% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translate(20px, -40px) scale(0.1); }
+          }
+          .animate-suck-inventory {
+            animation: suckIntoInventory 2.5s ease-in-out forwards;
+            transform-origin: top right;
+          }
+        `}
+        ,
+        {`
+          @keyframes floatUpFade {
+            0% { opacity: 1; transform: translateY(0) scale(0.5); }
+            20% { transform: translateY(-20px) scale(1.2); }
+            100% { opacity: 0; transform: translateY(-80px) scale(1); }
+          }
+          .animate-point-up {
+            animation: floatUpFade 1.5s ease-out forwards;
+          }
+        `}
+      </style>
+
+      <div className="w-full max-w-5xl flex justify-between items-center bg-white/90 backdrop-blur-md p-2 pr-4 md:p-3 md:pr-6 rounded-full shadow-sm border border-white mb-6 md:mb-10 animate-page-enter">
+        <div className="flex items-center gap-3 md:gap-4 relative">
           <div className="rounded-full p-0.5 bg-linear-to-br from-[#1591dc] to-[#4bb8fa] shadow-sm">
             <div className="rounded-full bg-white p-0.5">
               <AvatarDisplay
@@ -361,27 +653,107 @@ function QuizRoom() {
               />
             </div>
           </div>
-          <div className="flex flex-col justify-center">
+          <div className="flex flex-col justify-center relative">
             <h2 className="text-base md:text-lg font-extrabold text-[#2c5ead] m-0 leading-tight">
               {user.nama}
             </h2>
-            <span className="text-xs md:text-sm font-bold text-[#1591dc] mt-0.5">
-              ⭐ Skor: {score}
-            </span>
+
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-xs md:text-sm font-bold text-[#1591dc] bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
+                ⭐ {totalScore} Poin
+              </span>
+
+              <div
+                className={`flex items-center gap-1 px-2 py-0.5 rounded-md font-black text-xs transition-all duration-300 ${
+                  streak >= 3
+                    ? "bg-orange-100 border border-orange-400 text-orange-600 shadow-[0_0_8px_rgba(249,115,22,0.4)]"
+                    : streak > 0
+                      ? "bg-yellow-50 border border-yellow-300 text-yellow-600"
+                      : "bg-gray-50 border border-gray-200 text-gray-400 grayscale opacity-70"
+                }`}
+              >
+                <span className={streak >= 3 ? "animate-bounce" : ""}>🔥</span>
+                <span>x{streak}</span>
+              </div>
+            </div>
+
+            {floatingPoints.map((anim) => (
+              <div
+                key={anim.id}
+                className="absolute -top-6 left-8 text-xl font-black text-green-500 drop-shadow-md animate-point-up pointer-events-none z-50"
+              >
+                +{anim.points}
+              </div>
+            ))}
           </div>
         </div>
+        <div className="relative flex items-center gap-2 md:gap-3 z-50">
+          \
+          <div
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-full font-black text-sm md:text-base shadow-[inset_0_2px_4px_rgba(0,0,0,0.06)] border transition-all duration-300 ${
+              isTimeCritical
+                ? "bg-red-50 border-red-500 text-red-600 animate-pulse"
+                : isTimeWarning
+                  ? "bg-orange-50 border-orange-400 text-orange-500"
+                  : "bg-blue-50/50 border-[#1591dc]/30 text-[#2c5ead]"
+            }`}
+          >
+            <ClockCircleFilled
+              className={isTimeCritical ? "animate-spin" : ""}
+            />
+            <span className="tabular-nums tracking-widest">
+              {formatTime(timeLeft)}
+            </span>
+          </div>
+          <Button
+            type="primary"
+            shape="round"
+            icon={<ThunderboltOutlined />}
+            size="large"
+            onClick={() => setIsBuffModalVisible(true)}
+            className="bg-linear-to-r from-[#1591dc] to-[#722ed1] hover:from-[#4bb8fa] hover:to-[#9254de] text-white border-none shadow-lg shadow-blue-400/40 font-extrabold flex items-center transition-all duration-300 hover:scale-105 hover:shadow-blue-400/60"
+          >
+            <span className="hidden sm:inline">Buff</span>
+            <span className="bg-white text-[#722ed1] text-xs font-black rounded-full min-w-5.5 h-5.5 flex items-center justify-center px-1 shadow-inner">
+              {totalBuffsLeft}
+            </span>
+          </Button>
+          {droppedBuff && (
+            <div className="absolute top-[125%] right-2 pointer-events-none animate-suck-inventory">
+              <div
+                className="relative bg-white border-2 rounded-2xl px-4 py-2.5 shadow-2xl flex items-center gap-3 w-max"
+                style={{ borderColor: droppedBuff.color }}
+              >
+                <div
+                  className="absolute -top-2.5 right-8 w-4 h-4 bg-white border-t-2 border-l-2 rotate-45"
+                  style={{ borderColor: droppedBuff.color }}
+                ></div>
 
-        <Button
-          type="primary"
-          shape="round"
-          icon={<ThunderboltOutlined />}
-          size="middle"
-          className="bg-linear-to-r from-yellow-400 to-yellow-500 hover:from-yellow-300 hover:to-yellow-400 text-[#2c5ead]! border-none! shadow-md font-extrabold flex items-center transition-transform hover:scale-105"
-          title="Buff segera hadir!"
-          disabled
-        >
-          <span className="hidden sm:inline">Buff</span>
-        </Button>
+                <div
+                  className="w-9 h-9 shrink-0 rounded-full flex items-center justify-center text-lg text-white shadow-md animate-pulse"
+                  style={{ backgroundColor: droppedBuff.color }}
+                >
+                  {(() => {
+                    const Icon = droppedBuff.icon;
+                    return <Icon />;
+                  })()}
+                </div>
+
+                <div className="flex flex-col pr-2">
+                  <span className="text-[9px] font-extrabold text-gray-400 uppercase tracking-widest leading-none mb-1">
+                    Dapat Buff!
+                  </span>
+                  <span
+                    className="font-black text-base leading-none"
+                    style={{ color: droppedBuff.color }}
+                  >
+                    {droppedBuff.label}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="w-full max-w-5xl flex flex-col md:flex-row gap-6 lg:gap-8 items-start mt-10 md:mt-12">
@@ -434,6 +806,15 @@ function QuizRoom() {
                 <span className="bg-[#4bb8fa] text-white text-xs px-3 py-1.5 rounded-full font-bold shadow-xs">
                   Soal {currentIndex + 1} / {questions.length}
                 </span>
+                {isDoublePoinActive && (
+                  <Tag
+                    icon={<RocketFilled />}
+                    color="purple"
+                    className="rounded-full border-none font-extrabold m-0 shadow-xs animate-bounce"
+                  >
+                    2x Poin
+                  </Tag>
+                )}
                 {quiz?.kategori && (
                   <Tag
                     color={categoryStyle.tagColor}
@@ -455,6 +836,10 @@ function QuizRoom() {
                   const isCorrectOption = key === currentQuestion.kunciJawaban;
                   const isSelected = key === selectedOption;
                   const isHovered = !isAnswered && hoveredOption === key;
+                  const isEliminated =
+                    !isAnswered && currentEliminated.includes(key);
+                  const isHintTarget =
+                    !isAnswered && isHintRevealed && isCorrectOption;
 
                   let stateClass = "bg-white border-[#c4e2f5] text-[#2c5ead]";
                   let badgeClass = "bg-[#c4e2f5] text-[#1591dc]";
@@ -463,6 +848,18 @@ function QuizRoom() {
                     stateClass =
                       "bg-[#1591dc] border-[#1591dc] text-white shadow-lg scale-[1.01]";
                     badgeClass = "bg-white/25 text-white";
+                  }
+
+                  if (isHintTarget) {
+                    stateClass =
+                      "bg-white border-yellow-400 text-[#2c5ead] shadow-lg shadow-yellow-200 ring-2 ring-yellow-300";
+                    badgeClass = "bg-yellow-400 text-white";
+                  }
+
+                  if (isEliminated) {
+                    stateClass =
+                      "bg-gray-100 border-gray-200 text-gray-300 opacity-50 line-through";
+                    badgeClass = "bg-gray-200 text-gray-300";
                   }
 
                   if (isAnswered) {
@@ -488,8 +885,8 @@ function QuizRoom() {
                       onMouseLeave={() =>
                         setHoveredOption((prev) => (prev === key ? null : prev))
                       }
-                      disabled={isAnswered}
-                      className={`w-full flex items-center gap-3 text-left transition-all duration-200 p-3.5 rounded-2xl border-2 font-bold text-base md:text-lg ${stateClass} ${isAnswered ? "cursor-default" : "cursor-pointer active:scale-95"}`}
+                      disabled={isAnswered || isEliminated}
+                      className={`w-full flex items-center gap-3 text-left transition-all duration-200 p-3.5 rounded-2xl border-2 font-bold text-base md:text-lg ${stateClass} ${isAnswered || isEliminated ? "cursor-default" : "cursor-pointer active:scale-95"}`}
                     >
                       <span
                         className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-extrabold transition-colors duration-150 ${badgeClass}`}
@@ -497,6 +894,9 @@ function QuizRoom() {
                         {key}
                       </span>
                       <span className="flex-1">{optionText}</span>
+                      {isHintTarget && (
+                        <BulbFilled className="text-xl shrink-0 text-yellow-400 animate-pulse" />
+                      )}
                       {isAnswered && isCorrectOption && (
                         <CheckCircleFilled className="text-xl shrink-0 drop-shadow-md" />
                       )}
@@ -606,6 +1006,259 @@ function QuizRoom() {
           </span>
         </div>
       </Modal>
+
+      <Modal
+        title={
+          <div className="text-center text-[#2c5ead] font-extrabold text-2xl flex items-center justify-center gap-2 mb-2 mt-2">
+            <ThunderboltOutlined className="text-yellow-500 animate-pulse" />{" "}
+            INVENTORY BUFF
+          </div>
+        }
+        open={isBuffModalVisible}
+        onCancel={() => setIsBuffModalVisible(false)}
+        footer={null}
+        centered
+        width={450}
+        className="inventory-modal"
+      >
+        <div className="flex flex-col gap-4 mt-2">
+          {BUFF_DEFINITIONS.map(({ key, label, desc, icon: Icon, color }) => {
+            const count = buffCounts[key] || 0;
+
+            const alreadyUsedThisQuestion =
+              (key === "fifty_fifty" && !!eliminatedOptions[currentIndex]) ||
+              (key === "hint" && !!revealedHints[currentIndex]) ||
+              (key === "double_poin" && !!doublePoinQuestions[currentIndex]);
+
+            const isBlockedByAnswered = key !== "extra_time" && isAnswered;
+
+            const isDisabled =
+              count <= 0 || isBlockedByAnswered || alreadyUsedThisQuestion;
+
+            let buttonText = "Gunakan";
+            if (alreadyUsedThisQuestion) {
+              buttonText = "Dipakai";
+            } else if (isBlockedByAnswered && count > 0) {
+              buttonText = "Sudah Jawab"; // Kasih tau user kenapa ga bisa dipencet
+            } else if (count <= 0) {
+              buttonText = "Habis";
+            }
+
+            return (
+              <div
+                key={key}
+                className={`group relative overflow-hidden flex items-center gap-4 p-4 rounded-3xl border-2 transition-all duration-300 ${
+                  isDisabled
+                    ? "border-gray-200 bg-gray-50 opacity-60 grayscale"
+                    : "border-transparent bg-white shadow-md hover:shadow-xl hover:-translate-y-1 cursor-pointer"
+                }`}
+                style={{
+                  borderColor: !isDisabled ? `${color}40` : "",
+                }}
+              >
+                {!isDisabled && (
+                  <div
+                    className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-300"
+                    style={{
+                      backgroundImage: `linear-gradient(to right, ${color}, transparent)`,
+                    }}
+                  ></div>
+                )}
+
+                <div
+                  className={`shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center text-3xl text-white shadow-lg transition-transform duration-300 ${!isDisabled && "group-hover:scale-110 group-hover:rotate-3"}`}
+                  style={{ backgroundColor: color }}
+                >
+                  <Icon />
+                </div>
+
+                <div className="flex-1 min-w-0 relative z-10">
+                  <p className="font-black text-lg text-gray-800 m-0 leading-tight group-hover:text-[#2c5ead] transition-colors">
+                    {label}
+                  </p>
+                  <p className="text-xs text-gray-500 m-0 mt-1 leading-snug font-medium">
+                    {desc}
+                  </p>
+                </div>
+
+                <div className="flex flex-col items-end gap-1.5 shrink-0 relative z-10">
+                  <span className="text-sm font-black bg-gray-100 text-gray-500 px-2 py-0.5 rounded-md">
+                    x{count}
+                  </span>
+                  <Button
+                    size="middle"
+                    shape="round"
+                    type="primary"
+                    disabled={isDisabled}
+                    onClick={() => handleUseBuff(key)}
+                    className="font-extrabold text-xs shadow-md"
+                    style={{
+                      backgroundColor: isDisabled ? undefined : color,
+                      borderColor: isDisabled ? undefined : color,
+                    }}
+                  >
+                    {buttonText}
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Modal>
+
+      <style>
+        {`
+          @keyframes epicBuffReveal {
+            0% { opacity: 0; transform: scale(0) rotate(-20deg); }
+            10% { opacity: 1; transform: scale(1.2) rotate(5deg); }
+            15% { transform: scale(1) rotate(0deg); }
+            85% { opacity: 1; transform: scale(1) translateY(0); }
+            95% { opacity: 1; transform: scale(1.1) translateY(-10px); }
+            100% { opacity: 0; transform: scale(0) translateY(-100px); }
+          }
+          .animate-epic-buff {
+            /* Durasi diubah jadi 2.5s biar lebih cepet */
+            animation: epicBuffReveal 2.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+          }
+          
+          @keyframes godRays {
+            0% { transform: rotate(0deg) scale(1.5); }
+            100% { transform: rotate(360deg) scale(1.5); }
+          }
+          .animate-god-rays {
+            animation: godRays 15s linear infinite;
+          }
+        `}
+      </style>
+
+      <style>
+        {`
+          @keyframes shatterDrop {
+            0% { transform: scale(3) rotate(0deg); opacity: 0; }
+            10% { transform: scale(1) rotate(-10deg); opacity: 1; }
+            20% { transform: scale(1) rotate(10deg); opacity: 1; }
+            30% { transform: scale(1) rotate(-10deg); opacity: 1; }
+            40% { transform: scale(1) rotate(0deg); opacity: 1; filter: grayscale(0%); }
+            70% { transform: scale(1) translateY(0); opacity: 1; filter: grayscale(80%); }
+            100% { transform: scale(0.8) translateY(150px); opacity: 0; filter: grayscale(100%); }
+          }
+          .animate-shatter {
+            animation: shatterDrop 2.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+          }
+        `}
+      </style>
+
+      {isStreakBroken && (
+        <div className="fixed inset-0 z-10000 flex items-center justify-center pointer-events-none bg-red-900/30 backdrop-blur-sm transition-all duration-300">
+          <div className="flex flex-col items-center animate-shatter">
+            <div className="text-8xl md:text-9xl drop-shadow-2xl mb-2">💔</div>
+            <h1 className="text-5xl md:text-7xl font-black text-white m-0 drop-shadow-[0_4px_4px_rgba(220,38,38,0.8)] uppercase tracking-tighter text-center">
+              STREAK PECAH!
+            </h1>
+            <p className="mt-4 text-white font-extrabold text-lg md:text-xl drop-shadow-lg bg-red-600/80 px-6 py-2 rounded-full border-2 border-white/40">
+              Sayang banget, streak x{lastStreak} kamu lenyap 😭
+            </p>
+          </div>
+        </div>
+      )}
+
+      {activeBuffAnimation && (
+        <div
+          className="fixed inset-0 z-10000 flex items-center justify-center bg-black/60 backdrop-blur-sm transition-all duration-500 cursor-pointer"
+          onClick={() => {
+            setActiveBuffAnimation(null);
+            if (buffAnimTimerRef.current)
+              clearTimeout(buffAnimTimerRef.current);
+          }}
+        >
+          <div
+            className="absolute w-[200vw] h-[200vw] md:w-[150vw] md:h-[150vw] opacity-40 animate-god-rays"
+            style={{
+              background: `repeating-conic-gradient(from 0deg, ${activeBuffAnimation.color} 0deg 15deg, transparent 15deg 30deg)`,
+            }}
+          />
+
+          <div className="relative flex flex-col items-center animate-epic-buff">
+            <div
+              className="w-40 h-40 md:w-52 md:h-52 rounded-full flex items-center justify-center text-7xl md:text-8xl text-white border-8 border-white mb-6 relative"
+              style={{
+                backgroundColor: activeBuffAnimation.color,
+                boxShadow: `0 0 80px ${activeBuffAnimation.color}, inset 0 0 30px rgba(0,0,0,0.2)`,
+              }}
+            >
+              <div className="absolute inset-0 rounded-full animate-ping border-4 border-white opacity-60"></div>
+              {(() => {
+                const Icon = activeBuffAnimation.icon;
+                return <Icon />;
+              })()}
+            </div>
+
+            <div className="bg-white px-10 py-4 rounded-full shadow-2xl border-b-4 border-gray-200 text-center relative overflow-hidden">
+              <span className="block text-xs md:text-sm font-black text-gray-400 uppercase tracking-widest mb-1">
+                Buff Diaktifkan!
+              </span>
+              <h1
+                className="text-4xl md:text-6xl font-black m-0 drop-shadow-sm uppercase italic tracking-tighter"
+                style={{ color: activeBuffAnimation.color }}
+              >
+                {activeBuffAnimation.label}
+              </h1>
+            </div>
+
+            <p className="mt-6 text-white font-extrabold text-lg md:text-2xl drop-shadow-lg text-center bg-black/40 px-6 py-2 rounded-full backdrop-blur-md">
+              {activeBuffAnimation.desc}
+            </p>
+
+            {/* Tulisan kecil buat ngasih tau bisa di-skip */}
+            <p className="absolute -bottom-10 text-white/50 text-sm font-bold animate-pulse">
+              Klik di mana saja untuk skip
+            </p>
+          </div>
+        </div>
+      )}
+
+      {activeBuffAnimation && (
+        <div className="fixed inset-0 z-10000 flex items-center justify-center pointer-events-none bg-black/60 backdrop-blur-sm transition-all duration-500">
+          <div
+            className="absolute w-[200vw] h-[200vw] md:w-[150vw] md:h-[150vw] opacity-40 animate-god-rays"
+            style={{
+              background: `repeating-conic-gradient(from 0deg, ${activeBuffAnimation.color} 0deg 15deg, transparent 15deg 30deg)`,
+            }}
+          />
+
+          <div className="relative flex flex-col items-center animate-epic-buff">
+            <div
+              className="w-40 h-40 md:w-52 md:h-52 rounded-full flex items-center justify-center text-7xl md:text-8xl text-white border-8 border-white mb-6 relative"
+              style={{
+                backgroundColor: activeBuffAnimation.color,
+                boxShadow: `0 0 80px ${activeBuffAnimation.color}, inset 0 0 30px rgba(0,0,0,0.2)`,
+              }}
+            >
+              <div className="absolute inset-0 rounded-full animate-ping border-4 border-white opacity-60"></div>
+              {(() => {
+                const Icon = activeBuffAnimation.icon;
+                return <Icon />;
+              })()}
+            </div>
+
+            <div className="bg-white px-10 py-4 rounded-full shadow-2xl border-b-4 border-gray-200 text-center relative overflow-hidden">
+              <span className="block text-xs md:text-sm font-black text-gray-400 uppercase tracking-widest mb-1">
+                Buff Diaktifkan!
+              </span>
+              <h1
+                className="text-4xl md:text-6xl font-black m-0 drop-shadow-sm uppercase italic tracking-tighter"
+                style={{ color: activeBuffAnimation.color }}
+              >
+                {activeBuffAnimation.label}
+              </h1>
+            </div>
+
+            <p className="mt-6 text-white font-extrabold text-lg md:text-2xl drop-shadow-lg text-center bg-black/40 px-6 py-2 rounded-full backdrop-blur-md">
+              {activeBuffAnimation.desc}
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
